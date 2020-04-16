@@ -8,7 +8,7 @@
 #include <bakkesmod/plugin/bakkesmodplugin.h>
 #include <bakkesmod/wrappers/canvaswrapper.h>
 
-#define DEBUGGING
+//#define DEBUGGING
 
 typedef struct
 {
@@ -30,6 +30,12 @@ typedef struct
 	}
 } Game;
 
+typedef struct
+{
+	std::shared_ptr<int> positionX = std::make_shared<int>( 420 );
+	std::shared_ptr<int> positionY = std::make_shared<int>( 0 );
+} DisplayMetrics;
+
 class SessionPlugin: public BakkesMod::Plugin::BakkesModPlugin
 { 
 private:
@@ -39,7 +45,9 @@ private:
 	SteamID steamID; // Steam ID info
 
 	std::shared_ptr<bool> display_stats = std::make_shared<bool>( true ); // Setting if we should display stats
-	std::shared_ptr<bool> should_log = std::make_shared<bool>( true ); // Setting if we should log info to the console
+	std::shared_ptr<bool> should_log = std::make_shared<bool>( false ); // Setting if we should log info to the console
+
+	DisplayMetrics displayMetrics; // Metrics of the stats display
 
 	// Events
 	void OnPlayerScored( std::string eventName );

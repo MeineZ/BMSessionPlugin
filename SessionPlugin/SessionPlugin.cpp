@@ -10,6 +10,8 @@
 
 #define CVAR_NAME_DISPLAY "cl_session_plugin_display"
 #define CVAR_NAME_SHOULD_LOG "cl_session_plugin_should_log"
+#define CVAR_NAME_DISPLAY_X "cl_session_plugin_display_x"
+#define CVAR_NAME_DISPLAY_Y "cl_session_plugin_display_y"
 #define CVAR_NAME_RESET "cl_session_plugin_reset"
 
 #define HOOK_COUNTDOWN_BEGINSTATE "Function GameEvent_TA.Countdown.BeginState"
@@ -53,8 +55,10 @@ void SessionPlugin::onLoad()
 	cvarManager->log( std::string(exports.pluginName) + std::string( " version: ") + std::string( exports.pluginVersion) );
 
 	// CVar initialization
-	cvarManager->registerCvar( CVAR_NAME_DISPLAY, "1", "Display session stats", true, true, 0, true, 1, true ).bindTo(display_stats);
-	cvarManager->registerCvar( CVAR_NAME_SHOULD_LOG, "1", "Should log stats to console", true, true, 0, true, 1, true ).bindTo( should_log );
+	cvarManager->registerCvar( CVAR_NAME_DISPLAY, "1", "Display session stats", false, true, 0, true, 1, true ).bindTo(display_stats);
+	cvarManager->registerCvar( CVAR_NAME_SHOULD_LOG, "0", "Should log stats to console", false, true, 0, true, 1, true ).bindTo( should_log );
+	cvarManager->registerCvar( CVAR_NAME_DISPLAY_X, "420", "X position of the display", false, true, 0, true, 3840, true ).bindTo( displayMetrics.positionX );
+	cvarManager->registerCvar( CVAR_NAME_DISPLAY_Y, "0", "Y position of the display", false, true, 0, true, 2160, true ).bindTo( displayMetrics.positionY );
 
 	// CVar Hooks
 	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<string> params ) {
@@ -106,10 +110,10 @@ void SessionPlugin::InMainMenu( std::string eventName )
 			cvarManager->log( "Main menu" );
 		}
 
-		if( steamID.ID != 0 )
+		if( steamID.ID > 0 )
 		{
 			// Update MMR stats
-			UpdateCurrentMmr( 5 );
+			UpdateCurrentMmr( 10 );
 		}
 
 		if( *should_log )
@@ -248,7 +252,7 @@ void SessionPlugin::EndGame( std::string eventName )
 		}
 
 		// Update MMR stats
-		UpdateCurrentMmr( 5 );
+		UpdateCurrentMmr( 10 );
 	} // If currentgame is active
 }
 
@@ -281,7 +285,7 @@ void SessionPlugin::DestroyedGame( std::string eventName )
 		}
 
 		// Update MMR stats
-		UpdateCurrentMmr(5);
+		UpdateCurrentMmr(10);
 	}
 }
 
@@ -296,15 +300,20 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 	if( *display_stats )
 #endif
 	{
+		Vector2 position = {
+			*displayMetrics.positionX,
+			*displayMetrics.positionY
+		};
+
 		// DRAW BOX
 		Vector2 canvasSize = canvas.GetSize();
 		canvas.SetColor( 0, 0, 0, 75 );
-		canvas.SetPosition( Vector2{ 420, 0 } );
-		canvas.FillBox( Vector2{ 100, 88 } );
+		canvas.SetPosition( position );
+		canvas.FillBox( Vector2{ 175, 88 } );
 
 		// DRAW CURRENT PLAYLIST
 		canvas.SetColor( TITLE_COLOR );
-		canvas.SetPosition( Vector2{ 430, 5 } );
+		canvas.SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
 	#ifndef DEBUGGING
 		canvas.DrawString( itPlaylist->second ); 
 	#else
@@ -313,7 +322,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 
 		// DRAW MMR
 		canvas.SetColor( LABEL_COLOR );
-		canvas.SetPosition( Vector2{ 430, 21 } );
+		canvas.SetPosition( Vector2{ position.X + 24, position.Y + 21 } );
 		canvas.DrawString( "MMR:" );
 
 	#ifndef DEBUGGING
@@ -329,7 +338,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 		{
 			canvas.SetColor( RED_COLOR );
 		}
-		canvas.SetPosition( Vector2{ 500, 21 } );
+		canvas.SetPosition( Vector2{ position.X + 65, position.Y + 21 } );
 
 		std::stringstream mmrGainStream;
 		mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
@@ -337,11 +346,11 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 
 		// DRAW WINS
 		canvas.SetColor( LABEL_COLOR );
-		canvas.SetPosition( Vector2{ 461, 37 } );
+		canvas.SetPosition( Vector2{ position.X + 23, position.Y + 37 } );
 		canvas.DrawString( "Wins:" );
 
 		canvas.SetColor( GREEN_COLOR );
-		canvas.SetPosition( Vector2{ 500, 37 } );
+		canvas.SetPosition( Vector2{ position.X + 65, position.Y + 37 } );
 	#ifndef DEBUGGING
 		canvas.DrawString( std::to_string( currentPlaylistStats->second.wins ) );
 	#else
@@ -350,11 +359,11 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 
 		// DRAW LOSSES
 		canvas.SetColor( LABEL_COLOR );
-		canvas.SetPosition( Vector2{ 448, 53 } );
+		canvas.SetPosition( Vector2{ position.X + 10, position.Y + 53 } );
 		canvas.DrawString( "Losses:" );
 
 		canvas.SetColor( RED_COLOR );
-		canvas.SetPosition( Vector2{ 500, 53 } );
+		canvas.SetPosition( Vector2{ position.X + 65, position.Y + 53 } );
 	#ifndef DEBUGGING
 		canvas.DrawString( std::to_string( currentPlaylistStats->second.losses ) );
 	#else
@@ -363,7 +372,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 
 		// DRAW STREAK
 		canvas.SetColor( LABEL_COLOR );
-		canvas.SetPosition( Vector2{ 449, 69 } );
+		canvas.SetPosition( Vector2{ position.X + 11, position.Y + 69 } );
 		canvas.DrawString( "Streak:" );
 
 	#ifndef DEBUGGING
@@ -379,7 +388,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 		{
 			canvas.SetColor( RED_COLOR );
 		}
-		canvas.SetPosition( Vector2{ 500, 69 } );
+		canvas.SetPosition( Vector2{ position.X + 65, position.Y + 69 } );
 		canvas.DrawString( ( streak > 0 ? "+" : "" ) + std::to_string( streak ) );
 	}
 }
@@ -504,9 +513,33 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 					if( *should_log )
 					{
 						cvarManager->log( "Couldn't get the MMR because it was syncing.." );
+						cvarManager->log( "Try to force it." );
 					}
-					UpdateCurrentMmr( retryCount - 1 );
-					return;
+
+					MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+					float mmr = mmrWrapper.GetPlayerMMR( steamID, currentGame.type );
+					
+					if( stats[currentGame.type].currentMmr == mmr )
+					{
+						if( *should_log )
+						{
+							cvarManager->log( "Received MMR is the same as it already was, so it's probably not updated. Retrying.." );
+						}
+						UpdateCurrentMmr( retryCount - 1 );
+						return;
+					}
+					else
+					{
+						stats[currentGame.type].currentMmr = mmr;
+
+						if( *should_log )
+						{
+							float mmrGain = stats[currentGame.type].currentMmr - stats[currentGame.type].initialMmr;
+							std::stringstream mmrGainStream;
+							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
+							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
+						}
+					}
 				}
 			} // retryCount > 0
 			else if( retryCount == 0 )
@@ -528,6 +561,6 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 					cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
 				}
 			}
-		}, 3 );
+		}, 1.f );
 	}
 }
