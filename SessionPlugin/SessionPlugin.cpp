@@ -26,7 +26,7 @@
 #define GREEN_COLOR 95, 232, 95, 127
 #define RED_COLOR 232, 95, 95, 127
 
-BAKKESMOD_PLUGIN( SessionPlugin, "Session plugin (shows session stats)", "0.1", 0 )
+BAKKESMOD_PLUGIN( SessionPlugin, "Session plugin (shows session stats)", "1.0", 0 )
 
 #ifdef DEBUGGING
 void SessionPlugin::testHook( std::string eventName )
