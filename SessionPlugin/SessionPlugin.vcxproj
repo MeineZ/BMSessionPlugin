@@ -81,6 +81,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)</IntDir>
+    <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,18 +133,18 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\Steam\steamapps\common\rocketleague\Binaries\Win64\bakkesmod\bakkesmodsdk\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BAKKES_MOD)\bakkesmodsdk\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files (x86)\Steam\steamapps\common\rocketleague\Binaries\Win64\bakkesmod\bakkesmodsdk\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(BAKKES_MOD)\bakkesmodsdk\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>bakkesmod.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(SolutionDir)$(Platform)\$(Configuration)\SessionPlugin.dll" "C:\Program Files (x86)\Steam\steamapps\common\rocketleague\Binaries\Win64\bakkesmod\plugins\SessionPlugin.dll" &amp;&amp; copy "$(SolutionDir)$(Platform)\$(Configuration)\SessionPlugin.lib" "C:\Program Files (x86)\Steam\steamapps\common\rocketleague\Binaries\Win64\bakkesmod\plugins\SessionPlugin.lib" &amp;&amp; copy "$(SolutionDir)SessionPlugin.set" "C:\Program Files (x86)\Steam\steamapps\common\rocketleague\Binaries\Win64\bakkesmod\plugins\settings\SessionPlugin.set"</Command>
+      <Command>copy "$(SolutionDir)$(Platform)\$(Configuration)\SessionPlugin.dll" "$(BAKKES_MOD)\plugins\SessionPlugin.dll" &amp;&amp; copy "$(SolutionDir)$(Platform)\$(Configuration)\SessionPlugin.lib" "$(BAKKES_MOD)\plugins\SessionPlugin.lib" &amp;&amp; copy "$(SolutionDir)SessionPlugin.set" "$(BAKKES_MOD)\plugins\settings\SessionPlugin.set"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
