@@ -13,5 +13,4 @@ You can send me a DM on Discord to receive the plugin: Meine#8883 or, if you wan
     2. Linker -> General -> Additional Library Directories
     3. Build Events -> Post-Build Event -> Command Line
         1. SessionPlugin.dll
-        2. SessionPlugin.lib
-        3. SessionPlugin.set
+        2. SessionPlugin.set
