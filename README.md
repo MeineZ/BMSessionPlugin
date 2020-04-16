@@ -6,7 +6,8 @@ You can send me a DM on Discord to receive the plugin: Meine#8883 or, if you wan
 
 * Set an environment variable
     1. Add a BAKKES_MOD environment variable that has the path to the bakkesmod folder (e.g. 'STEAMLIBRARY/steamapps/common/rocketleague/Binaries/Win64/bakkesmod')
-    2. Build the solution in Release | 64-bit
+    2. Restart computer
+    3. Build the solution in Release | 64-bit
 * Edit the project properties to correct the paths (replace BAKKES_MOD environment variable with the path to the bakkesmod folder in the rocket league 64 bin folder)
     1. C/C++ -> General -> Additional Include Directories
     2. Linker -> General -> Additional Library Directories
