@@ -42,14 +42,18 @@ void SessionPlugin::onLoad()
 	// Variable initialization
 	ResetStats();
 
-#ifdef DEBUGGING
+	playlists[/* PLAYLIST_DUEL */ 1] = "Duel";
 	playlists[/* PLAYLIST_DOUBLES */ 2] = "Doubles";
 	playlists[/* PLAYLIST_STANDARD */ 3] = "Standard";
-#endif
+	playlists[/* PLAYLIST_CHAOS */ 4] = "Chaos";
 	playlists[/* PLAYLIST_RANKEDDUEL */ 10] = "Ranked Solo Duel";
 	playlists[/* PLAYLIST_RANKEDDOUBLES */ 11] = "Ranked Doubles";
 	playlists[/* PLAYLIST_RANKEDSOLOSTANDARD */ 12] = "Ranked Solo Standard";
 	playlists[/* PLAYLIST_RANKEDSTANDARD */ 13] = "Ranked Standard";
+	playlists[/* PLAYLIST_RANKEDHOOPS */ 27] = "Ranked Hoops";
+	playlists[/* PLAYLIST_RANKEDRUMBLE */ 28] = "Ranked Rumble";
+	playlists[/* PLAYLIST_RANKEDDROPSHOT */ 29] = "Ranked Dropshot";
+	playlists[/* PLAYLIST_RANKEDSNOWDAY */ 30] = "Ranked Snowday";
 
 	// log startup to console
 	cvarManager->log( std::string(exports.pluginName) + std::string( " version: ") + std::string( exports.pluginVersion) );
@@ -221,7 +225,7 @@ void SessionPlugin::EndGame( std::string eventName )
 		if( !CheckValidGame() )
 			return;
 
-		// End current session
+		// End current game
 		currentGame.isActive = false;
 
 		if( *should_log )
@@ -260,7 +264,7 @@ void SessionPlugin::DestroyedGame( std::string eventName )
 {
 	if( currentGame.isActive && stats.find( currentGame.type ) != stats.end() )
 	{ // We know that we are not in a valid game anymore, so we'll have to work with the latest know score
-		// End current session
+		// End current game
 		currentGame.isActive = false;
 
 		if( *should_log )
