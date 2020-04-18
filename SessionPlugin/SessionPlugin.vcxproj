@@ -133,7 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(BAKKES_MOD)\bakkesmodsdk\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BAKKES_MOD)\bakkesmodsdk\include;$(ProjectDir);</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,9 +148,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Match.cpp" />
+    <ClCompile Include="Playlist.cpp" />
     <ClCompile Include="SessionPlugin.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Match.h" />
+    <ClInclude Include="Playlist.h" />
     <ClInclude Include="SessionPlugin.h" />
   </ItemGroup>
   <ItemGroup>

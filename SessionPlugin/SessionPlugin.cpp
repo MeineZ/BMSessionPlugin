@@ -26,7 +26,7 @@
 #define GREEN_COLOR 95, 232, 95, 127
 #define RED_COLOR 232, 95, 95, 127
 
-BAKKESMOD_PLUGIN( SessionPlugin, "Session plugin (shows session stats)", "1.0", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.1", 0 )
 
 #ifdef DEBUGGING
 void SessionPlugin::testHook( std::string eventName )
@@ -37,23 +37,10 @@ void SessionPlugin::testHook( std::string eventName )
 }
 #endif
 
-void SessionPlugin::onLoad()
+void ssp::SessionPlugin::onLoad()
 {
 	// Variable initialization
 	ResetStats();
-
-	playlists[/* PLAYLIST_DUEL */ 1] = "Duel";
-	playlists[/* PLAYLIST_DOUBLES */ 2] = "Doubles";
-	playlists[/* PLAYLIST_STANDARD */ 3] = "Standard";
-	playlists[/* PLAYLIST_CHAOS */ 4] = "Chaos";
-	playlists[/* PLAYLIST_RANKEDDUEL */ 10] = "Ranked Solo Duel";
-	playlists[/* PLAYLIST_RANKEDDOUBLES */ 11] = "Ranked Doubles";
-	playlists[/* PLAYLIST_RANKEDSOLOSTANDARD */ 12] = "Ranked Solo Standard";
-	playlists[/* PLAYLIST_RANKEDSTANDARD */ 13] = "Ranked Standard";
-	playlists[/* PLAYLIST_RANKEDHOOPS */ 27] = "Ranked Hoops";
-	playlists[/* PLAYLIST_RANKEDRUMBLE */ 28] = "Ranked Rumble";
-	playlists[/* PLAYLIST_RANKEDDROPSHOT */ 29] = "Ranked Dropshot";
-	playlists[/* PLAYLIST_RANKEDSNOWDAY */ 30] = "Ranked Snowday";
 
 	// log startup to console
 	cvarManager->log( std::string(exports.pluginName) + std::string( " version: ") + std::string( exports.pluginVersion) );
@@ -90,7 +77,7 @@ void SessionPlugin::onLoad()
 }
 
 
-void SessionPlugin::onUnload()
+void ssp::SessionPlugin::onUnload()
 {
 	ResetStats();
 
@@ -104,9 +91,9 @@ void SessionPlugin::onUnload()
 	gameWrapper->UnhookEvent( HOOK_ON_MAIN_MENU );
 }
 
-void SessionPlugin::InMainMenu( std::string eventName )
+void ssp::SessionPlugin::InMainMenu( std::string eventName )
 {
-	if( currentGame.type != -1 )
+	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()) )
 	{
 		if( *should_log )
 		{
@@ -127,9 +114,9 @@ void SessionPlugin::InMainMenu( std::string eventName )
 	}
 }
 
-void SessionPlugin::OnPlayerScored( std::string eventName )
+void ssp::SessionPlugin::OnPlayerScored( std::string eventName )
 {
-	if( currentGame.isActive && stats.find( currentGame.type ) != stats.end() )
+	if( currentMatch.IsActive() && stats.find( static_cast<int>(currentMatch.GetMatchType())) != stats.end() )
 	{
 		// Check if we are good to process the state of the player
 		if( !CheckValidGame() )
@@ -141,26 +128,27 @@ void SessionPlugin::OnPlayerScored( std::string eventName )
 		}
 
 		gameWrapper->SetTimeout( [this] ( GameWrapper *gameWrapper ) {
-			SetCurrentGameGoals();
+			currentMatch.SetCurrentGameGoals(gameWrapper);
 
 			if( *should_log )
 			{
-				cvarManager->log( "A player scored! Current score: " + std::to_string( currentGame.team1Goals ) + " - " + std::to_string( currentGame.team2Goals ) );
-				cvarManager->log( "Your team is: " + std::to_string( currentGame.teamNumber ) );
+				ssp::match::Result matchResult = currentMatch.GetStanding();
+				cvarManager->log( "A player scored! Current score: " + std::to_string( currentMatch.GetTeamScore(0) ) + " - " + std::to_string( currentMatch.GetTeamScore( 1 ) ) );
+				cvarManager->log( "Your team is " + std::string(matchResult == ssp::match::Result::WIN ? "winning" : ( matchResult == ssp::match::Result::LOSS ? "losing" : "tied" ) ) + "!" );
 				cvarManager->log( "-------------" );
 			}
 		}, 0.25 );
 	}
 }
 
-void SessionPlugin::StartGame( std::string eventName )
+void ssp::SessionPlugin::StartGame( std::string eventName )
 {
 	if( *should_log )
 	{
 		cvarManager->log( "-------------" );
 	}
 
-	if( !currentGame.isActive )
+	if( !currentMatch.IsActive() )
 	{
 		// Check if we are good to process the state of the player
 		if( !CheckValidGame() )
@@ -168,39 +156,34 @@ void SessionPlugin::StartGame( std::string eventName )
 
 		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
 
-		// Current game is active
-		currentGame.isActive = true;
+		currentMatch.OnMatchStart(&*gameWrapper);
 
 		steamID.ID = gameWrapper->GetSteamID();
-
-		// Get car and team number
-		CarWrapper car = gameWrapper->GetLocalCar();
-		currentGame.teamNumber = -1;
-		if( !car.IsNull() )
-		{
-			currentGame.teamNumber = car.GetTeamNum2();
-		}
 
 		// Get current playlist
 		MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
 
-		currentGame.type = mmrWrapper.GetCurrentPlaylist();
+		currentMatch.SetMatchType(mmrWrapper.GetCurrentPlaylist());
 
 		// Get initial MMR if playlist wasn't tracked yet
-		if( stats.find( currentGame.type ) == stats.end() )
+		int matchType = static_cast<int>( currentMatch.GetMatchType() );
+		if( stats.find( matchType) == stats.end() )
 		{
-			float mmr = mmrWrapper.GetPlayerMMR( steamID, currentGame.type );
+			float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
 
-			stats[currentGame.type] = PlaylistSessionStats{ mmr, mmr, 0, 0, 0 };
+			stats[matchType] = ssp::playlist::Stats{ mmr, mmr, 0, 0, 0 };
 		}
 
 		if( *should_log )
 		{
 			cvarManager->log( "Game started!" );
 			cvarManager->log( "Received SteamID: " + std::to_string( steamID.ID ) );
-			cvarManager->log( "Player is on team " + std::to_string( currentGame.teamNumber ) );
-			cvarManager->log( "MMR: " + std::to_string( stats[currentGame.type].currentMmr ) );
-			cvarManager->log( "Current playlist: " + std::to_string( currentGame.type ) );
+			cvarManager->log( "Player is on team " + std::to_string( currentMatch.GetCurrentTeam() ) );
+			if( matchType >= 0 )
+			{
+				cvarManager->log( "MMR: " + std::to_string( stats[matchType].currentMmr ) );
+			}
+			cvarManager->log( "Current playlist: " + ssp::playlist::GetName( currentMatch.GetMatchType() ) );
 		}
 	}
 	else
@@ -217,16 +200,17 @@ void SessionPlugin::StartGame( std::string eventName )
 	}
 }
 
-void SessionPlugin::EndGame( std::string eventName )
+void ssp::SessionPlugin::EndGame( std::string eventName )
 {
-	if( currentGame.isActive && stats.find( currentGame.type ) != stats.end() )
+	int matchType = static_cast<int>( currentMatch.GetMatchType() );
+	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{
 		// Check if we are good to process the state of the game
 		if( !CheckValidGame() )
 			return;
 
-		// End current game
-		currentGame.isActive = false;
+		// End current match
+		currentMatch.Deactivate();
 
 		if( *should_log )
 		{
@@ -237,21 +221,21 @@ void SessionPlugin::EndGame( std::string eventName )
 		if( !serverWrapper.IsNull() )
 		{
 			// Get final score
-			SetCurrentGameGoals();
+			currentMatch.SetCurrentGameGoals(&*gameWrapper);
 
 			// Update playlist stats
-			SetWinOrLoss();
+			currentMatch.SetWinOrLoss( stats[matchType]);
 		}
 
 		// Reset current game
-		currentGame.MatchEndReset();
+		currentMatch.MatchEndReset();
 
 		if( *should_log )
 		{
 			cvarManager->log( "Game over!" );
-			cvarManager->log( "Wins: " + std::to_string(stats[currentGame.type].wins) );
-			cvarManager->log( "Losses: " + std::to_string( stats[currentGame.type].losses ) );
-			cvarManager->log( "Streak: " + std::to_string( stats[currentGame.type].streak ) );
+			cvarManager->log( "Wins: " + std::to_string(stats[matchType].wins) );
+			cvarManager->log( "Losses: " + std::to_string( stats[matchType].losses ) );
+			cvarManager->log( "Streak: " + std::to_string( stats[matchType].streak ) );
 			cvarManager->log( "-------------" );
 		}
 
@@ -260,12 +244,13 @@ void SessionPlugin::EndGame( std::string eventName )
 	} // If currentgame is active
 }
 
-void SessionPlugin::DestroyedGame( std::string eventName )
+void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 {
-	if( currentGame.isActive && stats.find( currentGame.type ) != stats.end() )
+	int matchType = static_cast<int>( currentMatch.GetMatchType() );
+	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{ // We know that we are not in a valid game anymore, so we'll have to work with the latest know score
 		// End current game
-		currentGame.isActive = false;
+		currentMatch.Deactivate();
 
 		if( *should_log )
 		{
@@ -274,17 +259,17 @@ void SessionPlugin::DestroyedGame( std::string eventName )
 		}
 
 		// Update playlist stats
-		SetWinOrLoss();
+		currentMatch.SetWinOrLoss( stats[matchType]);
 
-		// Reset current game
-		currentGame.MatchEndReset();
+		// Reset current match
+		currentMatch.MatchEndReset();
 
 
 		if( *should_log )
 		{
-			cvarManager->log( "Wins: " + std::to_string( stats[currentGame.type].wins ) );
-			cvarManager->log( "Losses: " + std::to_string( stats[currentGame.type].losses ) );
-			cvarManager->log( "Streak: " + std::to_string( stats[currentGame.type].streak ) );
+			cvarManager->log( "Wins: " + std::to_string( stats[matchType].wins ) );
+			cvarManager->log( "Losses: " + std::to_string( stats[matchType].losses ) );
+			cvarManager->log( "Streak: " + std::to_string( stats[matchType].streak ) );
 			cvarManager->log( "-------------" );
 		}
 
@@ -293,13 +278,13 @@ void SessionPlugin::DestroyedGame( std::string eventName )
 	}
 }
 
-void SessionPlugin::Render( CanvasWrapper canvas )
+void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 {
 #ifndef DEBUGGING
-	auto itPlaylist = playlists.find( currentGame.type );
-	auto currentPlaylistStats = stats.find( currentGame.type );
+	std::string playlistName = ssp::playlist::GetName( currentMatch.GetMatchType() );
+	auto currentPlaylistStats = stats.find( static_cast<int>( currentMatch.GetMatchType() ) );
 
-	if( *display_stats && itPlaylist != playlists.end() && currentPlaylistStats != stats.end() )
+	if( *display_stats && playlistName.size() > 0 && currentPlaylistStats != stats.end() )
 #else
 	if( *display_stats )
 #endif
@@ -319,7 +304,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 		canvas.SetColor( TITLE_COLOR );
 		canvas.SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
 	#ifndef DEBUGGING
-		canvas.DrawString( itPlaylist->second ); 
+		canvas.DrawString( playlistName );
 	#else
 		canvas.DrawString( "Ranked Solo Standard" );
 	#endif
@@ -330,7 +315,7 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 		canvas.DrawString( "MMR:" );
 
 	#ifndef DEBUGGING
-		float mmrGain = stats[currentGame.type].currentMmr - stats[currentGame.type].initialMmr;
+		float mmrGain = currentPlaylistStats->second.currentMmr - currentPlaylistStats->second.initialMmr;
 	#else
 		float mmrGain = 0;
 	#endif
@@ -397,14 +382,14 @@ void SessionPlugin::Render( CanvasWrapper canvas )
 	}
 }
 
-void SessionPlugin::ResetStats()
+void ssp::SessionPlugin::ResetStats()
 {
 	stats.clear();
 
-	currentGame = { 0, 0, -1, -1, false };
+	currentMatch.FullReset();
 }
 
-bool SessionPlugin::CheckValidGame()
+bool ssp::SessionPlugin::CheckValidGame()
 {
 	if( gameWrapper->IsInOnlineGame() && !gameWrapper->IsInReplay() && !gameWrapper->IsInFreeplay() )
 	{
@@ -415,66 +400,13 @@ bool SessionPlugin::CheckValidGame()
 	return false;
 }
 
-void SessionPlugin::SetCurrentGameGoals()
+void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 {
-	// Something must have gone wrong if the team number wasn't found
-	// We just retry again (important to note is that the current team number is very important to figure out who won)
-	if( currentGame.teamNumber == -1 )
+	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()))
 	{
-		CarWrapper car = gameWrapper->GetLocalCar();
-		if( !car.IsNull() )
-		{
-			currentGame.teamNumber = car.GetTeamNum2();
-		}
-	}
+		int matchType = static_cast<int>( currentMatch.GetMatchType() );
 
-	ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
-	if( !serverWrapper.IsNull() )
-	{
-		// Get teams
-		ArrayWrapper<TeamWrapper> teams = serverWrapper.GetTeams();
-		if( teams.Count() == 2 )
-		{
-			// Get the score of both teams
-			currentGame.team1Goals = teams.Get( 0 ).GetScore();
-			currentGame.team2Goals = teams.Get( 1 ).GetScore();
-		}
-	}
-}
-
-void SessionPlugin::SetWinOrLoss()
-{
-	if( ( currentGame.team1Goals > currentGame.team2Goals && currentGame.teamNumber == 0 ) || ( currentGame.team2Goals > currentGame.team1Goals && currentGame.teamNumber == 1 ) )
-	{ // log win
-		stats[currentGame.type].wins++;
-		if( stats[currentGame.type].streak < 0 )
-		{
-			stats[currentGame.type].streak = 1;
-		}
-		else
-		{
-			stats[currentGame.type].streak++;
-		}
-	}
-	else
-	{ // log loss
-		stats[currentGame.type].losses++;
-		if( stats[currentGame.type].streak > 0 )
-		{
-			stats[currentGame.type].streak = -1;
-		}
-		else
-		{
-			stats[currentGame.type].streak--;
-		}
-	}
-}
-
-void SessionPlugin::UpdateCurrentMmr(int retryCount)
-{
-	if( currentGame.type > 0 )
-	{
-		gameWrapper->SetTimeout( [retryCount, this] ( GameWrapper *gameWrapper ) {
+		gameWrapper->SetTimeout( [matchType, retryCount, this] ( GameWrapper *gameWrapper ) {
 			if( retryCount > 0 )
 			{
 				if( *should_log )
@@ -483,20 +415,20 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 				}
 
 				MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-				if( mmrWrapper.IsSynced( steamID, currentGame.type ) && !mmrWrapper.IsSyncing( steamID ) )
+				if( mmrWrapper.IsSynced( steamID, matchType ) && !mmrWrapper.IsSyncing( steamID ) )
 				{
-					float mmr = mmrWrapper.GetPlayerMMR( steamID, currentGame.type );
+					float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
 					if( *should_log )
 					{
 						cvarManager->log( "Received MMR! (" + std::to_string( mmr ) + ")" );
 					}
 
-					if( mmr != stats[currentGame.type].currentMmr )
+					if( mmr != stats[matchType].currentMmr )
 					{
-						stats[currentGame.type].currentMmr = mmr;
+						stats[matchType].currentMmr = mmr;
 						if( *should_log )
 						{
-							float mmrGain = stats[currentGame.type].currentMmr - stats[currentGame.type].initialMmr;
+							float mmrGain = stats[matchType].currentMmr - stats[matchType].initialMmr;
 							std::stringstream mmrGainStream;
 							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
 							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+": "" ) + mmrGainStream.str() );
@@ -521,9 +453,9 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 					}
 
 					MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-					float mmr = mmrWrapper.GetPlayerMMR( steamID, currentGame.type );
+					float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
 					
-					if( stats[currentGame.type].currentMmr == mmr )
+					if( stats[matchType].currentMmr == mmr )
 					{
 						if( *should_log )
 						{
@@ -534,11 +466,11 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 					}
 					else
 					{
-						stats[currentGame.type].currentMmr = mmr;
+						stats[matchType].currentMmr = mmr;
 
 						if( *should_log )
 						{
-							float mmrGain = stats[currentGame.type].currentMmr - stats[currentGame.type].initialMmr;
+							float mmrGain = stats[matchType].currentMmr - stats[matchType].initialMmr;
 							std::stringstream mmrGainStream;
 							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
 							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
@@ -554,12 +486,12 @@ void SessionPlugin::UpdateCurrentMmr(int retryCount)
 				}
 
 				MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-				float mmr = mmrWrapper.GetPlayerMMR( steamID, currentGame.type );
-				stats[currentGame.type].currentMmr = mmr;
+				float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
+				stats[matchType].currentMmr = mmr;
 
 				if( *should_log )
 				{
-					float mmrGain = stats[currentGame.type].currentMmr - stats[currentGame.type].initialMmr;
+					float mmrGain = stats[matchType].currentMmr - stats[matchType].initialMmr;
 					std::stringstream mmrGainStream;
 					mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
 					cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
