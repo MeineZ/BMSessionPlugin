@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <bakkesmod/plugin/bakkesmodplugin.h>
+
 #include <Playlist.h>
 
 class CVarManagerWrapper;
@@ -18,7 +20,9 @@ namespace ssp
 		Renderer();
 
 		// Renders given stats with the given playlist name at the specified position (posX, posY)
-		void RenderStats( CanvasWrapper *canvasWrapper, ssp::playlist::Stats & stats, std::string & playlistName);
+		void RenderStats( CanvasWrapper *canvasWrapper, ssp::playlist::Stats & stats, ssp::playlist::Type type );
+
+		Vector2 GetStatsDisplaySize( ssp::playlist::Type type );
 	};
 };
 

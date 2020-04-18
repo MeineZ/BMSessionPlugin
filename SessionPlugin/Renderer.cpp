@@ -17,7 +17,7 @@ ssp::Renderer::Renderer() :
 	posY(std::make_shared<int>(0))
 { }
 
-void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & stats, std::string & playlistName )
+void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & stats, ssp::playlist::Type type )
 {
 	std::stringstream stringStream;
 
@@ -29,15 +29,16 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	// DRAW BOX
 	canvas->SetColor( BOX_FILL_COLOR );
 	canvas->SetPosition( position );
-	canvas->FillBox( Vector2{ 200, 88 } );
+	canvas->FillBox( GetStatsDisplaySize(type) );
 
 
 	// DRAW CURRENT PLAYLIST
 	canvas->SetColor( TITLE_COLOR );
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
 
+	float currentMmr = stats.currentMmr;
 	stringStream.clear();
-	stringStream << playlistName << " (" << std::setprecision( 2 ) << stats.currentMmr << ")";
+	stringStream << ssp::playlist::GetName( type ) << " (" << std::setprecision( 2 ) << std::showpoint << std::fixed << currentMmr << ")";
 	canvas->DrawString( stringStream.str() );
 
 
@@ -57,8 +58,8 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	}
 	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 21 } );
 
-	stringStream.clear();
-	stringStream << std::fixed << std::setprecision( 2 ) << mmrGain;
+	stringStream.str(""); 
+	stringStream << std::fixed << std::setprecision( 2 ) << std::showpoint << std::fixed << mmrGain;
 	canvas->DrawString( ( mmrGain > 0 ? "+" : "" ) + stringStream.str() );
 
 
@@ -98,4 +99,16 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	}
 	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 69 } );
 	canvas->DrawString( ( streak > 0 ? "+" : "" ) + std::to_string( streak ) );
+}
+
+Vector2 ssp::Renderer::GetStatsDisplaySize( ssp::playlist::Type type )
+{
+	switch( type )
+	{
+		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL: return Vector2{ 175, 88 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES: return Vector2{ 200, 88 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD: return Vector2{ 240, 88 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD: return Vector2{ 210, 88 };
+		default: return Vector2{ 220, 88 };
+	}
 }
