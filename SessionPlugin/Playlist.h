@@ -6,6 +6,7 @@ namespace ssp // Session plugin
 {
 	namespace playlist
 	{
+		// Contains all stats that a playlist session can have.
 		struct Stats
 		{
 			float initialMmr;
@@ -15,6 +16,7 @@ namespace ssp // Session plugin
 			int streak;
 		};
 
+		// All supported types (types that are consider worth tracking).
 		enum class Type
 		{
 			PLAYLIST_UNKOWN				= -1,
@@ -32,10 +34,13 @@ namespace ssp // Session plugin
 			PLAYLIST_RANKEDSNOWDAY		=  30
 		};
 
+		// Returns the playlist Type based on the given int (playlist enumeration value).
 		Type FromInt(int type);
 
+		// Returns the name of the given playlist. Empty string if unknown/unsupported.
 		std::string GetName( Type type );
 
+		// Returns true if the playlist Type is known (in the Type enumeration)
 		inline bool IsKnown( Type type );
 	}
 }

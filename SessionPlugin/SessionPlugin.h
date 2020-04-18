@@ -10,14 +10,7 @@
 
 #include <Playlist.h>
 #include <Match.h>
-
-//#define DEBUGGING
-
-typedef struct
-{
-	std::shared_ptr<int> positionX = std::make_shared<int>( 420 );
-	std::shared_ptr<int> positionY = std::make_shared<int>( 0 );
-} DisplayMetrics;
+#include <Renderer.h>
 
 namespace ssp // SessionPlugin
 {
@@ -26,12 +19,11 @@ namespace ssp // SessionPlugin
 	private:
 		std::map<int, ssp::playlist::Stats> stats; // All stats per playlist
 		ssp::Match currentMatch; // Contains info about the current match
+		ssp::Renderer renderer; // Renderer that can render different objects
 		SteamID steamID; // Steam ID info
 
-		std::shared_ptr<bool> display_stats = std::make_shared<bool>( true ); // Setting if we should display stats
-		std::shared_ptr<bool> should_log = std::make_shared<bool>( false ); // Setting if we should log info to the console
-
-		DisplayMetrics displayMetrics; // Metrics of the stats display
+		std::shared_ptr<bool> displayStats; // Setting if we should display stats
+		std::shared_ptr<bool> shouldLog; // Setting if we should log info to the console
 
 		// Events
 		void OnPlayerScored( std::string eventName );
@@ -52,11 +44,9 @@ namespace ssp // SessionPlugin
 		// Updates the current Mmr of the player
 		void UpdateCurrentMmr( int retryCount );
 
-	#ifdef DEBUGGING
-		void testHook( std::string eventName );
-	#endif
-
 	public:
+		SessionPlugin();
+
 		// Required plugin hooks
 		virtual void onLoad();
 		virtual void onUnload();

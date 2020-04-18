@@ -150,11 +150,13 @@
   <ItemGroup>
     <ClCompile Include="Match.cpp" />
     <ClCompile Include="Playlist.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SessionPlugin.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Match.h" />
     <ClInclude Include="Playlist.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="SessionPlugin.h" />
   </ItemGroup>
   <ItemGroup>

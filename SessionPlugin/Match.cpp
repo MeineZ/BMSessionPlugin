@@ -16,6 +16,8 @@ ssp::Match::Match() :
 
 void ssp::Match::DetermineCurrentTeam( GameWrapper * gameWrapper )
 { 
+	// Only determine the current team if it's unknown.
+	// We expect the current team to be -1, when a new game started.
 	if( currentTeam == -1 )
 	{
 		CarWrapper car = gameWrapper->GetLocalCar();
@@ -28,6 +30,7 @@ void ssp::Match::DetermineCurrentTeam( GameWrapper * gameWrapper )
 
 void ssp::Match::MatchEndReset()
 {
+	// Soft reset data
 	goals[0] = goals[1] = 0;
 	currentTeam = -1;
 	isActive = false;
@@ -35,6 +38,7 @@ void ssp::Match::MatchEndReset()
 
 void ssp::Match::FullReset()
 {
+	// Hard reset data
 	type = ssp::playlist::Type::PLAYLIST_UNKOWN;
 	goals[0] = goals[1] = 0;
 	currentTeam = -1;
