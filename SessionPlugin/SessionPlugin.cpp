@@ -159,7 +159,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
 
 		// Initialize current match data
-		currentMatch.OnMatchStart(&*gameWrapper);
+		currentMatch.OnMatchStart(&*gameWrapper); 
 
 		// Receive steam ID
 		steamID.ID = gameWrapper->GetSteamID();
@@ -169,6 +169,9 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 
 		// Set the current playlist type to display the correct values
 		currentMatch.SetMatchType(mmrWrapper.GetCurrentPlaylist());
+
+		// Update MMR stats
+		UpdateCurrentMmr( 10 );
 
 		// Get initial MMR if playlist wasn't tracked yet
 		int matchType = static_cast<int>( currentMatch.GetMatchType() );
@@ -285,14 +288,14 @@ void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 
 void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 {
-	std::string playlistName = ssp::playlist::GetName( currentMatch.GetMatchType() );
+	ssp::playlist::Type matchType = currentMatch.GetMatchType();
 	auto currentPlaylistStats = stats.find( static_cast<int>( currentMatch.GetMatchType() ) );
 
 	// Only render if its allowed to, the playlist is known and there are stats to show
-	if( *displayStats && playlistName.size() > 0 && currentPlaylistStats != stats.end() )
+	if( *displayStats && matchType == ssp::playlist::Type::PLAYLIST_UNKOWN && currentPlaylistStats != stats.end() )
 	{
 		// Render current session stats
-		renderer.RenderStats(&canvas, currentPlaylistStats->second, playlistName);
+		renderer.RenderStats( &canvas, currentPlaylistStats->second, currentMatch.GetMatchType() );
 	}
 }
 
