@@ -21,7 +21,7 @@
 #define HOOK_EVENT_DESTROYED "Function TAGame.GameEvent_TA.EventDestroyed"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.1", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.2", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	stats(),
