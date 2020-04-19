@@ -31,7 +31,9 @@ namespace ssp // Session plugin
 			PLAYLIST_RANKEDHOOPS		=  27,
 			PLAYLIST_RANKEDRUMBLE		=  28,
 			PLAYLIST_RANKEDDROPSHOT		=  29,
-			PLAYLIST_RANKEDSNOWDAY		=  30
+			PLAYLIST_RANKEDSNOWDAY		=  30,
+
+			PLAYLIST_CASUAL				=  998 // Used to store the casual playlist at one place (unofficial playlist)
 		};
 
 		// Returns the playlist Type based on the given int (playlist enumeration value).
@@ -39,6 +41,12 @@ namespace ssp // Session plugin
 
 		// Returns the name of the given playlist. Empty string if unknown/unsupported.
 		std::string GetName( Type type );
+
+		// Checks if the playlist is a casual gamemode (all MMR should be the same there)
+		bool IsCasualPlaylist(Type type);
+
+		// If the given type is a casual gamemode, we'll return PLAYLIST_CASUAL instead of the given type
+		inline Type ConvertToCasualType( Type type );
 
 		// Returns true if the playlist Type is known (in the Type enumeration)
 		inline bool IsKnown( Type type );
@@ -48,4 +56,9 @@ namespace ssp // Session plugin
 inline bool ssp::playlist::IsKnown( ssp::playlist::Type type )
 {
 	return type != ssp::playlist::Type::PLAYLIST_UNKOWN;
+}
+
+inline ssp::playlist::Type ssp::playlist::ConvertToCasualType( ssp::playlist::Type type )
+{
+	return ssp::playlist::IsCasualPlaylist( type ) ? ssp::playlist::Type::PLAYLIST_CASUAL : type;
 }

@@ -8,8 +8,8 @@ namespace ssp // SessionPlugin
 		{
 			switch( type )
 			{
-				case int(Type::PLAYLIST_DUEL):						return Type::PLAYLIST_DUEL;
-				case int( Type::PLAYLIST_DOUBLES):					return Type::PLAYLIST_DOUBLES;
+				case int( Type::PLAYLIST_DUEL ):					return Type::PLAYLIST_DUEL;
+				case int( Type::PLAYLIST_DOUBLES ):					return Type::PLAYLIST_DOUBLES;
 				case int( Type::PLAYLIST_STANDARD ) :				return Type::PLAYLIST_STANDARD;
 				case int( Type::PLAYLIST_CHAOS ) :					return Type::PLAYLIST_CHAOS;
 				case int( Type::PLAYLIST_RANKEDDUEL ) :				return Type::PLAYLIST_RANKEDDUEL;
@@ -28,10 +28,10 @@ namespace ssp // SessionPlugin
 		{
 			switch( type )
 			{
-				case Type::PLAYLIST_DUEL:					return "Duel";
-				case Type::PLAYLIST_DOUBLES:				return "Doubles";
-				case Type::PLAYLIST_STANDARD:				return "Standard";
-				case Type::PLAYLIST_CHAOS:					return "Chaos";
+				case Type::PLAYLIST_DUEL:
+				case Type::PLAYLIST_DOUBLES:
+				case Type::PLAYLIST_STANDARD:
+				case Type::PLAYLIST_CHAOS:					return "Casual";
 				case Type::PLAYLIST_RANKEDDUEL:				return "Ranked Duel";
 				case Type::PLAYLIST_RANKEDDOUBLES:			return "Ranked Doubles";
 				case Type::PLAYLIST_RANKEDSOLOSTANDARD:		return "Ranked Solo Standard";
@@ -42,6 +42,18 @@ namespace ssp // SessionPlugin
 				case Type::PLAYLIST_RANKEDSNOWDAY:			return "Ranked Snowday";
 				case Type::PLAYLIST_UNKOWN:
 				default:									return "";
+			}
+		}
+
+		bool IsCasualPlaylist( Type type )
+		{
+			switch( type )
+			{
+				case Type::PLAYLIST_DUEL:
+				case Type::PLAYLIST_DOUBLES:
+				case Type::PLAYLIST_STANDARD:
+				case Type::PLAYLIST_CHAOS:		return true;
+				default:						return false;
 			}
 		}
 	}

@@ -174,7 +174,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		UpdateCurrentMmr( 10 );
 
 		// Get initial MMR if playlist wasn't tracked yet
-		int matchType = static_cast<int>( currentMatch.GetMatchType() );
+		int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ));
 		if( stats.find( matchType) == stats.end() )
 		{
 			// Initialize session stats whenplaylist hasn't been played yet during this session
@@ -209,7 +209,7 @@ void ssp::SessionPlugin::EndGame( std::string eventName )
 {
 	// Only mark the end of a new game when one is active and the current playlist exists
 	/// just in case the player reset his stats just before the end of th game (you never know :) ) 
-	int matchType = static_cast<int>( currentMatch.GetMatchType() );
+	int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ));
 	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{
 		// Check if we are good to process the state of the game
@@ -254,7 +254,7 @@ void ssp::SessionPlugin::EndGame( std::string eventName )
 
 void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 {
-	int matchType = static_cast<int>( currentMatch.GetMatchType() );
+	int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
 	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{ // We know that we are not in a valid game anymore, so we'll have to work with the latest know score
 		// End current game
@@ -289,7 +289,7 @@ void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 {
 	ssp::playlist::Type matchType = currentMatch.GetMatchType();
-	auto currentPlaylistStats = stats.find( static_cast<int>( currentMatch.GetMatchType() ) );
+	auto currentPlaylistStats = stats.find( static_cast<int>( ssp::playlist::ConvertToCasualType( matchType ) ) );
 
 	// Only render if its allowed to, the playlist is known and there are stats to show
 	if( *displayStats && matchType != ssp::playlist::Type::PLAYLIST_UNKOWN && currentPlaylistStats != stats.end() )
@@ -327,8 +327,9 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 	{
 		// Convert match type to int (for easy map usage)
 		int matchType = static_cast<int>( currentMatch.GetMatchType() );
+		int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
 
-		gameWrapper->SetTimeout( [matchType, retryCount, this] ( GameWrapper *gameWrapper ) {
+		gameWrapper->SetTimeout( [matchType, convertedMatchType, retryCount, this] ( GameWrapper *gameWrapper ) {
 			// Only try to receive MMR if we have tries left
 			if( retryCount >= 0 )
 			{
@@ -349,13 +350,13 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					}
 
 					// Check if it updated relative to the currently known MMR
-					if( mmr != stats[matchType].currentMmr )
+					if( mmr != stats[convertedMatchType].currentMmr )
 					{
 						// If it updated, we update the session data too
-						stats[matchType].currentMmr = mmr;
+						stats[convertedMatchType].currentMmr = mmr;
 						if( *shouldLog )
 						{
-							float mmrGain = stats[matchType].currentMmr - stats[matchType].initialMmr;
+							float mmrGain = stats[convertedMatchType].currentMmr - stats[convertedMatchType].initialMmr;
 							std::stringstream mmrGainStream;
 							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
 							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+": "" ) + mmrGainStream.str() );
@@ -388,7 +389,7 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					
 					// When it's the same MMR, the player may not have gained any MMR,
 					// but since that chance is very slim, we try again.
-					if( stats[matchType].currentMmr == mmr )
+					if( stats[convertedMatchType].currentMmr == mmr )
 					{
 						if( *shouldLog )
 						{
@@ -400,11 +401,11 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					else
 					{
 						// If it updated, we update the session data too
-						stats[matchType].currentMmr = mmr;
+						stats[convertedMatchType].currentMmr = mmr;
 
 						if( *shouldLog )
 						{
-							float mmrGain = stats[matchType].currentMmr - stats[matchType].initialMmr;
+							float mmrGain = stats[convertedMatchType].currentMmr - stats[convertedMatchType].initialMmr;
 							std::stringstream mmrGainStream;
 							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
 							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
