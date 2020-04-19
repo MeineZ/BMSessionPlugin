@@ -180,7 +180,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 			// Initialize session stats whenplaylist hasn't been played yet during this session
 			float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
 
-			stats[matchType] = ssp::playlist::Stats{ mmr, mmr, 0, 0, 0 };
+			stats[matchType] = ssp::playlist::Stats{ {mmr, mmr}, 0, 0, 0 };
 		}
 
 		if( *shouldLog )
@@ -190,7 +190,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 			cvarManager->log( "Player is on team " + std::to_string( currentMatch.GetCurrentTeam() ) );
 			if( matchType >= 0 )
 			{
-				cvarManager->log( "MMR: " + std::to_string( stats[matchType].currentMmr ) );
+				cvarManager->log( "MMR: " + std::to_string( stats[matchType].mmr.current ) );
 			}
 			cvarManager->log( "Current playlist: " + ssp::playlist::GetName( currentMatch.GetMatchType() ) );
 			cvarManager->log( "-------------" );
@@ -350,16 +350,15 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					}
 
 					// Check if it updated relative to the currently known MMR
-					if( mmr != stats[convertedMatchType].currentMmr )
+					if( mmr != stats[convertedMatchType].mmr.current )
 					{
 						// If it updated, we update the session data too
-						stats[convertedMatchType].currentMmr = mmr;
+						stats[convertedMatchType].mmr.current = mmr;
 						if( *shouldLog )
 						{
-							float mmrGain = stats[convertedMatchType].currentMmr - stats[convertedMatchType].initialMmr;
 							std::stringstream mmrGainStream;
-							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
-							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+": "" ) + mmrGainStream.str() );
+							stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
+							cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
 						}
 					}
 					else
@@ -389,7 +388,7 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					
 					// When it's the same MMR, the player may not have gained any MMR,
 					// but since that chance is very slim, we try again.
-					if( stats[convertedMatchType].currentMmr == mmr )
+					if( stats[convertedMatchType].mmr.current == mmr )
 					{
 						if( *shouldLog )
 						{
@@ -401,14 +400,13 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 					else
 					{
 						// If it updated, we update the session data too
-						stats[convertedMatchType].currentMmr = mmr;
+						stats[convertedMatchType].mmr.current = mmr;
 
 						if( *shouldLog )
 						{
-							float mmrGain = stats[convertedMatchType].currentMmr - stats[convertedMatchType].initialMmr;
 							std::stringstream mmrGainStream;
-							mmrGainStream << std::fixed << std::setprecision( 2 ) << mmrGain;
-							cvarManager->log( "Updated session MMR: " + std::string( mmrGain > 0 ? "+" : "" ) + mmrGainStream.str() );
+							stats[convertedMatchType].mmr.SetDiffSStream(mmrGainStream);
+							cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
 						}
 					}
 				}

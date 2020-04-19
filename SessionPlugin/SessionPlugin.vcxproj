@@ -155,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Match.h" />
+    <ClInclude Include="MMR.h" />
     <ClInclude Include="Playlist.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SessionPlugin.h" />

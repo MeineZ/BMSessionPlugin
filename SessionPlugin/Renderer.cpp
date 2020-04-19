@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include <sstream>
-#include <iomanip>
 
 #include <bakkesmod/wrappers/cvarmanagerwrapper.h>
 #include <bakkesmod/wrappers/canvaswrapper.h>
@@ -36,9 +35,9 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	canvas->SetColor( TITLE_COLOR );
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
 
-	float currentMmr = stats.currentMmr;
-	stringStream.clear();
-	stringStream << ssp::playlist::GetName( type ) << " (" << std::setprecision( 2 ) << std::showpoint << std::fixed << currentMmr << ")";
+	stringStream << ssp::playlist::GetName( type ) << " (";
+	stats.mmr.SetCurrentSStream( stringStream );
+	stringStream << ")";
 	canvas->DrawString( stringStream.str() );
 
 
@@ -47,7 +46,7 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	canvas->SetPosition( Vector2{ position.X + 24, position.Y + 21 } );
 	canvas->DrawString( "MMR:" );
 
-	float mmrGain = stats.currentMmr - stats.initialMmr;
+	float mmrGain = stats.mmr.GetDiff();
 	if( mmrGain > 0 )
 	{
 		canvas->SetColor( GREEN_COLOR );
@@ -59,8 +58,8 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 21 } );
 
 	stringStream.str(""); 
-	stringStream << std::fixed << std::setprecision( 2 ) << std::showpoint << std::fixed << mmrGain;
-	canvas->DrawString( ( mmrGain > 0 ? "+" : "" ) + stringStream.str() );
+	stats.mmr.SetDiffSStream( stringStream );
+	canvas->DrawString( stringStream.str() );
 
 
 	// DRAW WINS

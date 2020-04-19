@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <MMR.h>
+
 namespace ssp // Session plugin
 {
 	namespace playlist
@@ -9,8 +11,7 @@ namespace ssp // Session plugin
 		// Contains all stats that a playlist session can have.
 		struct Stats
 		{
-			float initialMmr;
-			float currentMmr;
+			ssp::MMR mmr;
 			int wins;
 			int losses;
 			int streak;
