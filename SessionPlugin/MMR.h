@@ -4,12 +4,23 @@
 #include <string>
 #include <iomanip>
 
+#include <bakkesmod/wrappers/wrapperstructs.h>
+
+class GameWrapper;
+
 namespace ssp // SessionPlugin
 {
+	namespace playlist
+	{
+		enum class Type;
+	}
+
 	struct MMR
 	{
 		float initial = 0;
 		float current = 0;
+
+		bool RequestMmrUpdate(GameWrapper * gameWrapper, SteamID & steamId, const ssp::playlist::Type const * matchType, bool force = true);
 
 		inline float GetDiff();
 

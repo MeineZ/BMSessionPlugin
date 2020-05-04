@@ -70,6 +70,7 @@ void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
 
 void ssp::Match::SetWinOrLoss(ssp::playlist::Stats & stats)
 {
+	// First check if we can determine a win or loss with the mmr gain/loss
 	ssp::match::Result result = GetStanding();
 	if( result == ssp::match::Result::WIN )
 	{

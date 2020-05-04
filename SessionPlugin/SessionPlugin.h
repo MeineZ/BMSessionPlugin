@@ -44,9 +44,6 @@ namespace ssp // SessionPlugin
 		// Updates the current Mmr of the player
 		void UpdateCurrentMmr( int retryCount );
 
-
-		void TEst( std::string eventName );
-
 	public:
 		SessionPlugin();
 

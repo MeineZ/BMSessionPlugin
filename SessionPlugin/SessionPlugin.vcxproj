@@ -149,6 +149,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Match.cpp" />
+    <ClCompile Include="MMR.cpp" />
     <ClCompile Include="Playlist.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SessionPlugin.cpp" />

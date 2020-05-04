@@ -19,6 +19,7 @@
 #define HOOK_ON_WINNER_SET "Function TAGame.GameEvent_Soccar_TA.OnMatchWinnerSet"
 #define HOOK_MATCH_ENDED "Function TAGame.GameEvent_Soccar_TA.EventMatchEnded"
 #define HOOK_EVENT_DESTROYED "Function TAGame.GameEvent_TA.EventDestroyed"
+#define HOOK_HANDLE_PENALTY_CHANGED "Function TAGame.GFxHUD_TA.HandlePenaltyChanged"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
 BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.2", 0 )
@@ -66,13 +67,16 @@ void ssp::SessionPlugin::onLoad()
 	// Hook event: Match destroyed
 	gameWrapper->HookEvent( HOOK_EVENT_DESTROYED, bind( &SessionPlugin::EndGame, this, std::placeholders::_1 ) );
 
+	// This event is called at the very start of the game and as soon as players forfeited or the game ended
+	// This is not quite handling the rage quit case, but it will handle the final state of a match even before the player enters the winner circle
+	gameWrapper->HookEvent( HOOK_HANDLE_PENALTY_CHANGED, bind( &SessionPlugin::EndGame, this, std::placeholders::_1 ) );
+
 	// Hook event: On main menu
 	gameWrapper->HookEventPost( HOOK_ON_MAIN_MENU, bind( &SessionPlugin::InMainMenu, this, std::placeholders::_1 ) );
 
 	// Register drawable
 	gameWrapper->RegisterDrawable( std::bind( &SessionPlugin::Render, this, std::placeholders::_1 ) );
 }
-
 
 void ssp::SessionPlugin::onUnload()
 {
@@ -102,7 +106,7 @@ void ssp::SessionPlugin::InMainMenu( std::string eventName )
 		if( steamID.ID > 0 )
 		{
 			// Update MMR stats
-			UpdateCurrentMmr( 10 );
+			UpdateCurrentMmr( 3 );
 		}
 
 		if( *shouldLog )
@@ -171,7 +175,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		currentMatch.SetMatchType(mmrWrapper.GetCurrentPlaylist());
 
 		// Update MMR stats
-		UpdateCurrentMmr( 10 );
+		UpdateCurrentMmr( 2 );
 
 		// Get initial MMR if playlist wasn't tracked yet
 		int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ));
@@ -322,14 +326,15 @@ bool ssp::SessionPlugin::CheckValidGame()
 
 void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 {
+	ssp::playlist::Type playlistType = currentMatch.GetMatchType();
 	// Only update MMR if we know what playlist type to update
 	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()))
 	{
 		// Convert match type to int (for easy map usage)
-		int matchType = static_cast<int>( currentMatch.GetMatchType() );
-		int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
+		int matchType = static_cast<int>( playlistType );
+		int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( playlistType ) );
 
-		gameWrapper->SetTimeout( [matchType, convertedMatchType, retryCount, this] ( GameWrapper *gameWrapper ) {
+		gameWrapper->SetTimeout( [matchType, convertedMatchType, playlistType, retryCount, this] ( GameWrapper *gameWrapper ) {
 			// Only try to receive MMR if we have tries left
 			if( retryCount >= 0 )
 			{
@@ -339,76 +344,34 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
 				}
 
 				// Check if the MMR is currently synced
-				MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-				if( mmrWrapper.IsSynced( steamID, matchType ) && !mmrWrapper.IsSyncing( steamID ) )
+				if( stats[convertedMatchType].mmr.RequestMmrUpdate( gameWrapper, steamID, &playlistType, false ) )
 				{
-					// Get the player MMR
-					float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
 					if( *shouldLog )
 					{
-						cvarManager->log( "Received MMR! (" + std::to_string( mmr ) + ")" );
+						std::stringstream mmrGainStream;
+						stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
+						cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
 					}
-
-					// Check if it updated relative to the currently known MMR
-					if( mmr != stats[convertedMatchType].mmr.current )
+				}
+				else if( stats[convertedMatchType].mmr.RequestMmrUpdate( gameWrapper, steamID, &playlistType, true ) )
+				{
+					if( *shouldLog )
 					{
-						// If it updated, we update the session data too
-						stats[convertedMatchType].mmr.current = mmr;
-						if( *shouldLog )
-						{
-							std::stringstream mmrGainStream;
-							stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
-							cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
-						}
-					}
-					else
-					{
-						// When it's the same MMR, the player may not have gained any MMR,
-						// but since that chance is very slim, we try again.
-						if( *shouldLog )
-						{
-							cvarManager->log( "The MMR was the same. It may not have changed, but retrying just in case!" );
-						}
-						UpdateCurrentMmr( retryCount - 1 );
-						return;
+						std::stringstream mmrGainStream;
+						stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
+						cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
 					}
 				}
 				else
 				{
-					if( *shouldLog )
-					{
-						cvarManager->log( "Couldn't get the MMR because it was syncing.." );
-						cvarManager->log( "Try to force it." );
-					}
-
-					// When the MMR wasn't synced, it may happen that the MMR is already updated but didn't register its syncing state (yet)
-					// So, we just try to receive it anyway and check if the player's MMR changed 
-					MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-					float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
-					
-					// When it's the same MMR, the player may not have gained any MMR,
-					// but since that chance is very slim, we try again.
-					if( stats[convertedMatchType].mmr.current == mmr )
-					{
-						if( *shouldLog )
-						{
-							cvarManager->log( "Received MMR is the same as it already was, so it's probably not updated. Retrying.." );
-						}
-						UpdateCurrentMmr( retryCount - 1 );
-						return;
-					}
-					else
-					{
-						// If it updated, we update the session data too
-						stats[convertedMatchType].mmr.current = mmr;
-
-						if( *shouldLog )
-						{
-							std::stringstream mmrGainStream;
-							stats[convertedMatchType].mmr.SetDiffSStream(mmrGainStream);
-							cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
-						}
-					}
+					UpdateCurrentMmr( retryCount - 1 );
+				}
+			}
+			else
+			{
+				if( *shouldLog )
+				{
+					cvarManager->log( "Couldn't receive updated MMR (unless it didn't change).." );
 				}
 			}
 		}, 1.f );
