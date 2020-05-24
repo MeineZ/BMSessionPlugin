@@ -82,12 +82,13 @@ void ssp::SessionPlugin::onUnload()
 
 	gameWrapper->UnregisterDrawables();
 
-	gameWrapper->UnhookEvent( HOOK_COUNTDOWN_BEGINSTATE );
-	gameWrapper->UnhookEvent( HOOK_PLAYER_SCORED );
-	gameWrapper->UnhookEvent( HOOK_ON_WINNER_SET );
-	gameWrapper->UnhookEvent( HOOK_MATCH_ENDED );
-	gameWrapper->UnhookEvent( HOOK_EVENT_DESTROYED );
 	gameWrapper->UnhookEvent( HOOK_ON_MAIN_MENU );
+	gameWrapper->UnhookEvent( HOOK_HANDLE_PENALTY_CHANGED );
+	gameWrapper->UnhookEvent( HOOK_EVENT_DESTROYED );
+	gameWrapper->UnhookEvent( HOOK_MATCH_ENDED );
+	gameWrapper->UnhookEvent( HOOK_ON_WINNER_SET );
+	gameWrapper->UnhookEvent( HOOK_PLAYER_SCORED );
+	gameWrapper->UnhookEvent( HOOK_COUNTDOWN_BEGINSTATE );
 }
 
 void ssp::SessionPlugin::InMainMenu( std::string eventName )
