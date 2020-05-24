@@ -22,7 +22,7 @@
 #define HOOK_HANDLE_PENALTY_CHANGED "Function TAGame.GFxHUD_TA.HandlePenaltyChanged"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.3", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.2", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	stats(),
