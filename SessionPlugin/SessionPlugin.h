@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <functional>
 #include <string>
 
 #include <bakkesmod/plugin/bakkesmodplugin.h>
@@ -23,7 +24,13 @@ namespace ssp // SessionPlugin
 		SteamID steamID; // Steam ID info
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
-		std::shared_ptr<bool> shouldLog; // Setting if we should log info to the console
+
+	public:
+		SessionPlugin();
+
+		// Required plugin hooks
+		virtual void onLoad();
+		virtual void onUnload();
 
 		// Events
 		void OnPlayerScored( std::string eventName );
@@ -42,14 +49,10 @@ namespace ssp // SessionPlugin
 		bool CheckValidGame();
 
 		// Updates the current Mmr of the player
-		void UpdateCurrentMmr( int retryCount );
+		void UpdateCurrentMmr( int retryCount , std::function<void (bool, bool)> onSuccess = nullptr );
 
-	public:
-		SessionPlugin();
-
-		// Required plugin hooks
-		virtual void onLoad();
-		virtual void onUnload();
+		// Try to determine the match result (if possible and allowed)
+		void DetermineMatchResult(bool allowForce, bool updateMmr = true);
 
 	};
 }

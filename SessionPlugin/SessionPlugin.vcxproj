@@ -155,6 +155,7 @@
     <ClCompile Include="SessionPlugin.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Loggable.h" />
     <ClInclude Include="Match.h" />
     <ClInclude Include="MMR.h" />
     <ClInclude Include="Playlist.h" />

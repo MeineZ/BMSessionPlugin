@@ -3,18 +3,27 @@
 #include <string>
 
 #include <MMR.h>
+#include <Loggable.h>
+
+class CVarManagerWrapper;
 
 namespace ssp // Session plugin
 {
 	namespace playlist
 	{
 		// Contains all stats that a playlist session can have.
-		struct Stats
+		class Stats : public Loggable
 		{
+		public:
 			ssp::MMR mmr;
 			int wins;
 			int losses;
 			int streak;
+
+			Stats( );
+			Stats( float initialMmr );
+
+			virtual void Log( CVarManagerWrapper *cvarManager );
 		};
 
 		// All supported types (types that are consider worth tracking).

@@ -5,11 +5,14 @@
 #include <bakkesmod/wrappers/GameObject/CarWrapper.h>
 #include <bakkesmod/wrappers/GameObject/TeamWrapper.h>
 
+#include <SessionPlugin.h>
+
 ssp::Match::Match() :
 	type(ssp::playlist::Type::PLAYLIST_UNKOWN),
 	goals(),
 	currentTeam(-1),
-	isActive(false)
+	isActive(false),
+	canBeDetermined(false)
 { 
 	goals[0] = goals[1] = 0;
 }
@@ -31,18 +34,16 @@ void ssp::Match::DetermineCurrentTeam( GameWrapper * gameWrapper )
 void ssp::Match::MatchEndReset()
 {
 	// Soft reset data
-	goals[0] = goals[1] = 0;
-	currentTeam = -1;
 	isActive = false;
+	canBeDetermined = true;
 }
 
 void ssp::Match::FullReset()
 {
 	// Hard reset data
+	MatchEndReset();
 	type = ssp::playlist::Type::PLAYLIST_UNKOWN;
-	goals[0] = goals[1] = 0;
-	currentTeam = -1;
-	isActive = false;
+	canBeDetermined = false;
 }
 
 void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
@@ -68,34 +69,67 @@ void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
 	}
 }
 
-void ssp::Match::SetWinOrLoss(ssp::playlist::Stats & stats)
+bool ssp::Match::SetWinOrLoss(SessionPlugin * plugin, ssp::playlist::Stats & stats, bool byMmr )
 {
-	// First check if we can determine a win or loss with the mmr gain/loss
-	ssp::match::Result result = GetStanding();
-	if( result == ssp::match::Result::WIN )
+	if( canBeDetermined )
 	{
-		// You won! :D
-		stats.wins++;
-		if( stats.streak < 0 )
+		if( byMmr && stats.mmr.lastDiff != 0.0f )
 		{
-			stats.streak = 1;
+			ssp::match::Result result;
+			if( stats.mmr.lastDiff > 0.0f )
+			{
+				result = ssp::match::Result::WIN;
+			}
+			else
+			{
+				result = ssp::match::Result::LOSS;
+			}
+			SetWinLossAndStreak( result, stats );
+			stats.mmr.lastDiff = 0.0f;
+			canBeDetermined = false;
+			return true;
 		}
-		else
+		else if( !byMmr )
 		{
-			stats.streak++;
+			SetWinLossAndStreak( GetStanding(), stats );
+			stats.mmr.lastDiff = 0.0f;
+			canBeDetermined = false;
+			return true;
 		}
 	}
-	else if(result == ssp::match::Result::LOSS )
+	return false;
+}
+
+void ssp::Match::SetWinLossAndStreak( match::Result result, ssp::playlist::Stats &stats )
+{
+	if( canBeDetermined )
 	{
-		// You lost! D:
-		stats.losses++;
-		if( stats.streak > 0 )
+		// First check if we can determine a win or loss with the mmr gain/loss
+		if( result == ssp::match::Result::WIN )
 		{
-			stats.streak = -1;
+			// You won! :D
+			stats.wins++;
+			if( stats.streak < 0 )
+			{
+				stats.streak = 1;
+			}
+			else
+			{
+				stats.streak++;
+			}
 		}
-		else
+		else if( result == ssp::match::Result::LOSS )
 		{
-			stats.streak--;
+			// You lost! D:
+			stats.losses++;
+			if( stats.streak > 0 )
+			{
+				stats.streak = -1;
+			}
+			else
+			{
+				stats.streak--;
+			}
 		}
 	}
 }
@@ -108,4 +142,8 @@ void ssp::Match::OnMatchStart(GameWrapper * gameWrapper)
 	// Get car and team number
 	currentTeam = -1;
 	DetermineCurrentTeam(gameWrapper);
+
+	// Reset goals
+	goals[0] = goals[1] = 0;
+	canBeDetermined = false;
 }

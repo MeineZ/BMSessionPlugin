@@ -6,7 +6,10 @@
 
 #include <bakkesmod/wrappers/wrapperstructs.h>
 
+#include <Loggable.h>
+
 class GameWrapper;
+class CVarManagerWrapper;
 
 namespace ssp // SessionPlugin
 {
@@ -15,12 +18,19 @@ namespace ssp // SessionPlugin
 		enum class Type;
 	}
 
-	struct MMR
+	class MMR : public Loggable
 	{
+	public:
 		float initial = 0;
 		float current = 0;
 
+		float lastDiff = 0;
+
+		MMR( float initialMmr );
+
 		bool RequestMmrUpdate(GameWrapper * gameWrapper, SteamID & steamId, const ssp::playlist::Type const * matchType, bool force = true);
+
+		virtual void Log( CVarManagerWrapper *cvarManager );
 
 		inline float GetDiff();
 

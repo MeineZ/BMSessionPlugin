@@ -29,8 +29,7 @@ ssp::SessionPlugin::SessionPlugin():
 	currentMatch(),
 	renderer(),
 	steamID(),
-	displayStats( std::make_shared<bool>(true) ),
-	shouldLog( std::make_shared<bool>( false ) )
+	displayStats( std::make_shared<bool>(true) )
 { }
 
 void ssp::SessionPlugin::onLoad()
@@ -43,7 +42,6 @@ void ssp::SessionPlugin::onLoad()
 
 	// CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY, "1", "Display session stats", false, true, 0, true, 1, true ).bindTo( displayStats );
-	cvarManager->registerCvar( CVAR_NAME_SHOULD_LOG, "0", "Should log stats to console", false, true, 0, true, 1, true ).bindTo( shouldLog );
 
 	// Renderer CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_X, "420", "X position of the display", false, true, 0, true, 3840, true ).bindTo( renderer.posX );
@@ -65,7 +63,7 @@ void ssp::SessionPlugin::onLoad()
 	gameWrapper->HookEvent( HOOK_MATCH_ENDED, bind( &SessionPlugin::EndGame, this, std::placeholders::_1 ) );
 
 	// Hook event: Match destroyed
-	gameWrapper->HookEvent( HOOK_EVENT_DESTROYED, bind( &SessionPlugin::EndGame, this, std::placeholders::_1 ) );
+	gameWrapper->HookEvent( HOOK_EVENT_DESTROYED, bind( &SessionPlugin::DestroyedGame, this, std::placeholders::_1 ) );
 
 	// This event is called at the very start of the game and as soon as players forfeited or the game ended
 	// This is not quite handling the rage quit case, but it will handle the final state of a match even before the player enters the winner circle
@@ -97,115 +95,64 @@ void ssp::SessionPlugin::InMainMenu( std::string eventName )
 	// Try to update the current MMR if a steam id is known and a playlist session is active
 	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()) )
 	{
-		if( *shouldLog )
-		{
-			cvarManager->log( "---------" );
-			cvarManager->log( "Main menu" );
-		}
-
 		if( steamID.ID > 0 )
 		{
 			// Update MMR stats
-			UpdateCurrentMmr( 3 );
+			UpdateCurrentMmr( 3 , std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
+		}
+	}
+}
+
+void ssp::SessionPlugin::StartGame( std::string eventName )
+{
+	DetermineMatchResult( CheckValidGame(), true);
+
+	// If the match has been determined and it's a valid (trackable) game
+	if( !currentMatch.IsActive() )
+	{
+		if( !CheckValidGame() )
+			return;
+
+		// We can start a new one
+		// Get server wrapper and steam id
+		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
+		steamID.ID = gameWrapper->GetSteamID();
+
+		// Initialize current match data
+		currentMatch.OnMatchStart( &*gameWrapper );
+
+		// Get current playlist
+		MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+		currentMatch.SetMatchType( mmrWrapper.GetCurrentPlaylist() );
+
+		// Get initial MMR if playlist wasn't tracked yet
+		int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
+		if( stats.find( matchType ) == stats.end() )
+		{
+			// Initialize session stats whenplaylist hasn't been played yet during this session
+			float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
+
+			stats[matchType] = ssp::playlist::Stats( mmr );
 		}
 
-		if( *shouldLog )
-		{
-			cvarManager->log( "---------" );
-		}
+		// Set last found diff as this also tells us that a new game was started
+		stats[matchType].mmr.lastDiff = 0.f;
 	}
 }
 
 void ssp::SessionPlugin::OnPlayerScored( std::string eventName )
 {
 	// Try to update the current MMR if a match and a playlist session are active
-	if( currentMatch.IsActive() && stats.find( static_cast<int>(currentMatch.GetMatchType())) != stats.end() )
+	if( currentMatch.IsActive() && stats.find( static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) ) ) != stats.end() )
 	{
 		// Check if we are good to process the state of the player
 		if( !CheckValidGame() )
 			return;
-
-		if( *shouldLog )
-		{
-			cvarManager->log( "-------------" );
-		}
 
 		gameWrapper->SetTimeout( [this] ( GameWrapper *gameWrapper ) {
 			// Get the current score to update the current game data (since a player scored)
-			currentMatch.SetCurrentGameGoals(gameWrapper);
-
-			if( *shouldLog )
-			{
-				ssp::match::Result matchResult = currentMatch.GetStanding();
-				cvarManager->log( "A player scored! Current score: " + std::to_string( currentMatch.GetTeamScore(0) ) + " - " + std::to_string( currentMatch.GetTeamScore( 1 ) ) );
-				cvarManager->log( "Your team is " + std::string(matchResult == ssp::match::Result::WIN ? "winning" : ( matchResult == ssp::match::Result::LOSS ? "losing" : "tied" ) ) + "!" );
-				cvarManager->log( "-------------" );
-			}
+			currentMatch.SetCurrentGameGoals( gameWrapper );
 		}, 0.2 );
-	}
-}
-
-void ssp::SessionPlugin::StartGame( std::string eventName )
-{
-	// Only mark the start of a new game when none is active yet
-	if( !currentMatch.IsActive() )
-	{
-		if( *shouldLog )
-		{
-			cvarManager->log( "-------------" );
-		}
-
-		// Check if we are good to process the state of the player
-		if( !CheckValidGame() )
-			return;
-
-		// When we're in a vlid game, we can get the server wrapper
-		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
-
-		// Initialize current match data
-		currentMatch.OnMatchStart(&*gameWrapper); 
-
-		// Receive steam ID
-		steamID.ID = gameWrapper->GetSteamID();
-
-		// Get the MMRWrapper to receive the current playlist and the player's initial MMR
-		MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-
-		// Set the current playlist type to display the correct values
-		currentMatch.SetMatchType(mmrWrapper.GetCurrentPlaylist());
-
-		// Update MMR stats
-		UpdateCurrentMmr( 2 );
-
-		// Get initial MMR if playlist wasn't tracked yet
-		int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ));
-		if( stats.find( matchType) == stats.end() )
-		{
-			// Initialize session stats whenplaylist hasn't been played yet during this session
-			float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
-
-			stats[matchType] = ssp::playlist::Stats{ {mmr, mmr}, 0, 0, 0 };
-		}
-
-		if( *shouldLog )
-		{
-			cvarManager->log( "Game started!" );
-			cvarManager->log( "Received SteamID: " + std::to_string( steamID.ID ) );
-			cvarManager->log( "Player is on team " + std::to_string( currentMatch.GetCurrentTeam() ) );
-			if( matchType >= 0 )
-			{
-				cvarManager->log( "MMR: " + std::to_string( stats[matchType].mmr.current ) );
-			}
-			cvarManager->log( "Current playlist: " + ssp::playlist::GetName( currentMatch.GetMatchType() ) );
-			cvarManager->log( "-------------" );
-		}
-	}
-	else
-	{
-		if( *shouldLog )
-		{
-			cvarManager->log( "The game already started. Ignoring this event." );
-		}
 	}
 }
 
@@ -220,39 +167,19 @@ void ssp::SessionPlugin::EndGame( std::string eventName )
 		if( !CheckValidGame() )
 			return;
 
-		// End current match
-		currentMatch.Deactivate();
+		// Reset match
+		currentMatch.MatchEndReset();
 
-		if( *shouldLog )
-		{
-			cvarManager->log( "-------------" );
-		}
-
-		// Determine win/loss
 		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
 		if( !serverWrapper.IsNull() )
 		{
 			// Get final score
-			currentMatch.SetCurrentGameGoals(&*gameWrapper);
-
-			// Update playlist stats
-			currentMatch.SetWinOrLoss( stats[matchType]);
+			currentMatch.SetCurrentGameGoals( &*gameWrapper );
 		}
 
-		// Reset current match
-		currentMatch.MatchEndReset();
+		// Update MMR stats and determine win/loss
+		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ));
 
-		if( *shouldLog )
-		{
-			cvarManager->log( "Game over!" );
-			cvarManager->log( "Wins: " + std::to_string(stats[matchType].wins) );
-			cvarManager->log( "Losses: " + std::to_string( stats[matchType].losses ) );
-			cvarManager->log( "Streak: " + std::to_string( stats[matchType].streak ) );
-			cvarManager->log( "-------------" );
-		}
-
-		// Update MMR stats
-		UpdateCurrentMmr( 10 );
 	} // If currentgame is active
 }
 
@@ -264,29 +191,11 @@ void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 		// End current game
 		currentMatch.Deactivate();
 
-		if( *shouldLog )
-		{
-			cvarManager->log( "-------------" );
-			cvarManager->log( "Game destroyed! Rage quit? Stay happy!" );
-		}
-
-		// Update playlist stats
-		currentMatch.SetWinOrLoss( stats[matchType]);
-
-		// Reset current match
+		// Reset match
 		currentMatch.MatchEndReset();
 
-
-		if( *shouldLog )
-		{
-			cvarManager->log( "Wins: " + std::to_string( stats[matchType].wins ) );
-			cvarManager->log( "Losses: " + std::to_string( stats[matchType].losses ) );
-			cvarManager->log( "Streak: " + std::to_string( stats[matchType].streak ) );
-			cvarManager->log( "-------------" );
-		}
-
 		// Update MMR stats
-		UpdateCurrentMmr(10);
+		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
 	}
 }
 
@@ -324,56 +233,62 @@ bool ssp::SessionPlugin::CheckValidGame()
 	return false;
 }
 
-void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount)
+void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount, std::function<void(bool, bool)> onSuccess )
 {
 	ssp::playlist::Type playlistType = currentMatch.GetMatchType();
 	// Only update MMR if we know what playlist type to update
 	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()))
 	{
-		// Convert match type to int (for easy map usage)
-		int matchType = static_cast<int>( playlistType );
-		int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( playlistType ) );
+		// Only try to receive MMR if we have tries left
+		if( retryCount >= 0 )
+		{
+			// Convert match type to int (for easy map usage)
+			int matchType = static_cast<int>( playlistType );
+			int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( playlistType ) );
 
-		gameWrapper->SetTimeout( [matchType, convertedMatchType, playlistType, retryCount, this] ( GameWrapper *gameWrapper ) {
-			// Only try to receive MMR if we have tries left
-			if( retryCount >= 0 )
+			// Check if the MMR is currently synced
+			if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, steamID, &playlistType, false ) )
 			{
-				if( *shouldLog )
+				if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, steamID, &playlistType, true ) )
 				{
-					cvarManager->log( "Trying to get the player MMR (try: " + std::to_string( retryCount ) + ")" );
-				}
-
-				// Check if the MMR is currently synced
-				if( stats[convertedMatchType].mmr.RequestMmrUpdate( gameWrapper, steamID, &playlistType, false ) )
-				{
-					if( *shouldLog )
-					{
-						std::stringstream mmrGainStream;
-						stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
-						cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
-					}
-				}
-				else if( stats[convertedMatchType].mmr.RequestMmrUpdate( gameWrapper, steamID, &playlistType, true ) )
-				{
-					if( *shouldLog )
-					{
-						std::stringstream mmrGainStream;
-						stats[convertedMatchType].mmr.SetDiffSStream( mmrGainStream );
-						cvarManager->log( "Updated session MMR: " + mmrGainStream.str() );
-					}
-				}
-				else
-				{
-					UpdateCurrentMmr( retryCount - 1 );
+					gameWrapper->SetTimeout( [this, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
+						this->UpdateCurrentMmr( retryCount - 1, onSuccess );
+					}, 1.f );
+					return;
 				}
 			}
-			else
+
+			if( onSuccess )
 			{
-				if( *shouldLog )
+				onSuccess(false, false);
+			}
+		}
+	}
+}
+
+void ssp::SessionPlugin::DetermineMatchResult( bool allowForce, bool updateMmr )
+{
+	// If the match result still has to be determined
+	if( currentMatch.CanBeDetermined() )
+	{
+		if( updateMmr )
+		{
+			UpdateCurrentMmr( 0 );
+		}
+
+		// Determine match result based on mmr of the last known playlist
+		int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
+		if( ssp::playlist::IsKnown( currentMatch.GetMatchType() ) && stats.find( matchType ) != stats.end() )
+		{
+			if( !currentMatch.SetWinOrLoss( this, stats[matchType], true ) )
+			{
+				// If its a valid match and the determination still didn't work,
+				// force the issue and determine the result based on the goals scored
+				if( allowForce )
 				{
-					cvarManager->log( "Couldn't receive updated MMR (unless it didn't change).." );
+					currentMatch.SetWinOrLoss( this, stats[matchType], false );
 				}
 			}
-		}, 1.f );
+		}
 	}
 }

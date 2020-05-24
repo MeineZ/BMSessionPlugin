@@ -2,10 +2,12 @@
 
 #include <Playlist.h>
 
-class GameWrapper;
+class CVarManager;
 
 namespace ssp // SessionPlugin
 {
+	class SessionPlugin;
+
 	namespace match
 	{
 		// Contains match results
@@ -26,6 +28,10 @@ namespace ssp // SessionPlugin
 		int goals[2]; // Amount of goals scored for each team
 		int currentTeam; // The team that the player is in
 		bool isActive; // Whether the match is currently active or if it ended
+		bool canBeDetermined; // Whether the match has ended and the result can be determined
+
+		// Add a win or loss and updates the current streak based on the given result
+		void SetWinLossAndStreak( match::Result result, ssp::playlist::Stats &stats );
 
 	public:
 		// Construct Match
@@ -49,13 +55,14 @@ namespace ssp // SessionPlugin
 
 		// Detemine if the player lost or not based on the current known score.
 		// Also updates the session data, as we assume that the game is over.
-		void SetWinOrLoss( ssp::playlist::Stats &stats );
+		bool SetWinOrLoss( SessionPlugin *plugin, ssp::playlist::Stats &stats, bool byMmr );
 
 		// Returns the current standing based on the currently known score.
 		inline match::Result GetStanding();
 
 		inline ssp::playlist::Type GetMatchType(); // Returns the current match type
 		inline bool IsActive(); // Returns if a match is being tracked/active
+		inline bool CanBeDetermined(); // Returns if a match its result can be determined
 		inline int GetCurrentTeam(); // Returns the current team the player is in
 		inline int GetTeamScore(int team); // Returns the score of the specified team
 
@@ -72,6 +79,11 @@ inline ssp::playlist::Type ssp::Match::GetMatchType()
 inline bool ssp::Match::IsActive()
 {
 	return isActive;
+}
+
+inline bool ssp::Match::CanBeDetermined()
+{
+	return canBeDetermined;
 }
 
 inline int ssp::Match::GetCurrentTeam()

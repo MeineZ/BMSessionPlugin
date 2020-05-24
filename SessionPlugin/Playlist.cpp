@@ -1,5 +1,7 @@
 #include "Playlist.h"
 
+#include <bakkesmod/wrappers/cvarmanagerwrapper.h>
+
 namespace ssp // SessionPlugin
 {
 	namespace playlist
@@ -55,6 +57,31 @@ namespace ssp // SessionPlugin
 				case Type::PLAYLIST_CHAOS:		return true;
 				default:						return false;
 			}
+		}
+
+		Stats::Stats():
+			Loggable(),
+			mmr( 0.0f ),
+			wins( 0 ),
+			losses( 0 ),
+			streak( 0 )
+		{ }
+
+		Stats::Stats( float initialMmr ):
+			Loggable(),
+			mmr(initialMmr),
+			wins(0),
+			losses(0),
+			streak(0)
+		{
+		}
+
+		void Stats::Log( CVarManagerWrapper *cvarManager )
+		{
+			mmr.Log( cvarManager );
+			cvarManager->log( "Wins: " + std::to_string(wins));
+			cvarManager->log( "Losses: " + std::to_string( losses ) );
+			cvarManager->log( "Streak: " + std::to_string( streak ) );
 		}
 	}
 }
