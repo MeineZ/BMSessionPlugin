@@ -21,10 +21,13 @@ namespace ssp // SessionPlugin
 	class MMR : public Loggable
 	{
 	public:
-		float initial = 0;
-		float current = 0;
+		float initial;
+		float current;
 
-		float lastDiff = 0;
+		float lastDiffDisplay;
+		float lastDiff;
+
+		float streakMmrGain;
 
 		MMR( float initialMmr );
 
@@ -36,6 +39,7 @@ namespace ssp // SessionPlugin
 
 		inline void SetDiffSStream( std::stringstream &stringStream );
 		inline void SetCurrentSStream( std::stringstream &stringStream );
+		inline void SetLastGameSStream( std::stringstream &stringStream );
 	};
 }
 
@@ -47,6 +51,11 @@ inline float ssp::MMR::GetDiff()
 inline void ssp::MMR::SetDiffSStream(std::stringstream &stringStream)
 {
 	stringStream << ( GetDiff() > 0 ? "+" : "") << std::setprecision( 2 ) << std::showpoint << std::fixed << GetDiff();
+}
+
+inline void ssp::MMR::SetLastGameSStream( std::stringstream &stringStream )
+{
+	stringStream << ( lastDiffDisplay > 0 ? "+" : "" ) << std::setprecision( 2 ) << std::showpoint << std::fixed << lastDiffDisplay;
 }
 
 inline void ssp::MMR::SetCurrentSStream( std::stringstream &stringStream )

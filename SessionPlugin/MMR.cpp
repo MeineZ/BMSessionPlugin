@@ -10,7 +10,9 @@ ssp::MMR::MMR( float initialMmr ) :
 	Loggable(),
 	initial(initialMmr),
 	current(initialMmr),
-	lastDiff(0.0f)
+	lastDiffDisplay(0.0f),
+	lastDiff(0.0f),
+	streakMmrGain(0.0f)
 { }
 
 bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, SteamID &steamID, const ssp::playlist::Type const *matchType, bool force )
@@ -31,6 +33,7 @@ bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, SteamID &steamID, con
 		{
 			lastDiff = mmr - current;
 		}
+		lastDiffDisplay = lastDiff;
 		current = mmr;
 		return true;
 	}
@@ -50,6 +53,7 @@ bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, SteamID &steamID, con
 			{
 				lastDiff = mmr - current;
 			}
+			lastDiffDisplay = lastDiff;
 			current = mmr;
 			return true;
 		}

@@ -141,7 +141,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(BAKKES_MOD)\bakkesmodsdk\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>bakkesmod.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pluginsdk.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(SolutionDir)$(Platform)\$(Configuration)\SessionPlugin.dll" "$(BAKKES_MOD)\plugins\SessionPlugin.dll" &amp;&amp; copy "$(SolutionDir)SessionPlugin.set" "$(BAKKES_MOD)\plugins\settings\SessionPlugin.set"</Command>
@@ -161,6 +161,7 @@
     <ClInclude Include="Playlist.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SessionPlugin.h" />
+    <ClInclude Include="Settings.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\SessionPlugin.set" />

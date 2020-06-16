@@ -8,6 +8,8 @@
 #include <bakkesmod/wrappers/MMRWrapper.h>
 #include <bakkesmod/wrappers/GameEvent/ServerWrapper.h>
 
+#include <Settings.h>
+
 #define CVAR_NAME_DISPLAY "cl_session_plugin_display"
 #define CVAR_NAME_SHOULD_LOG "cl_session_plugin_should_log"
 #define CVAR_NAME_DISPLAY_X "cl_session_plugin_display_x"
@@ -22,7 +24,7 @@
 #define HOOK_HANDLE_PENALTY_CHANGED "Function TAGame.GFxHUD_TA.HandlePenaltyChanged"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.2", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.3", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	stats(),
@@ -48,7 +50,7 @@ void ssp::SessionPlugin::onLoad()
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_Y, "0", "Y position of the display", false, true, 0, true, 2160, true ).bindTo( renderer.posY );
 
 	// CVar Hooks
-	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<string> params ) {
+	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<std::string> params ) {
 		ResetStats();
 	}, "Start a fresh stats session", PERMISSION_ALL );
 
@@ -211,6 +213,13 @@ void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 		// Render current session stats
 		renderer.RenderStats( &canvas, currentPlaylistStats->second, currentMatch.GetMatchType() );
 	}
+#ifdef SSP_SETTINGS_DEBUG_RENDERER
+	else
+	{
+		ssp::playlist::Stats stats;
+		renderer.RenderStats( &canvas, stats, ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES );
+	}
+#endif
 }
 
 void ssp::SessionPlugin::ResetStats()

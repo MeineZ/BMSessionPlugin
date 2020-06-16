@@ -23,6 +23,9 @@ namespace ssp
 		void RenderStats( CanvasWrapper *canvasWrapper, ssp::playlist::Stats & stats, ssp::playlist::Type type );
 
 		Vector2 GetStatsDisplaySize( ssp::playlist::Type type );
+
+	private:
+		void SetColorByValue( CanvasWrapper *canvasWrapper, float value);
 	};
 };
 

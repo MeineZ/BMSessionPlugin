@@ -16,7 +16,7 @@ ssp::Renderer::Renderer() :
 	posY(std::make_shared<int>(0))
 { }
 
-void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & stats, ssp::playlist::Type type )
+void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &stats, ssp::playlist::Type type )
 {
 	std::stringstream stringStream;
 
@@ -28,7 +28,7 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 	// DRAW BOX
 	canvas->SetColor( BOX_FILL_COLOR );
 	canvas->SetPosition( position );
-	canvas->FillBox( GetStatsDisplaySize(type) );
+	canvas->FillBox( GetStatsDisplaySize( type ) );
 
 
 	// DRAW CURRENT PLAYLIST
@@ -43,71 +43,92 @@ void ssp::Renderer::RenderStats( CanvasWrapper * canvas, ssp::playlist::Stats & 
 
 	// DRAW MMR
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 24, position.Y + 21 } );
+	canvas->SetPosition( Vector2{ position.X + 43, position.Y + 21 } );
 	canvas->DrawString( "MMR:" );
 
 	float mmrGain = stats.mmr.GetDiff();
-	if( mmrGain > 0 )
-	{
-		canvas->SetColor( GREEN_COLOR );
-	}
-	else if( mmrGain < 0 )
-	{
-		canvas->SetColor( RED_COLOR );
-	}
-	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 21 } );
+	SetColorByValue( canvas, mmrGain );
+	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 21 } );
 
-	stringStream.str(""); 
+	stringStream.str( "" );
 	stats.mmr.SetDiffSStream( stringStream );
+	canvas->DrawString( stringStream.str() );
+
+	// DRAW LAST GAME MMR GAIN
+	canvas->SetColor( LABEL_COLOR );
+	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 37 } );
+	canvas->DrawString( "Last MMR:" );
+
+	float lastGameGain = stats.mmr.lastDiffDisplay;
+	SetColorByValue( canvas, lastGameGain );
+	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 37 } );
+
+	stringStream.str( "" );
+	stats.mmr.SetLastGameSStream( stringStream );
 	canvas->DrawString( stringStream.str() );
 
 
 	// DRAW WINS
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 23, position.Y + 37 } );
+	canvas->SetPosition( Vector2{ position.X + 42, position.Y + 53 } );
 	canvas->DrawString( "Wins:" );
 
 	canvas->SetColor( GREEN_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 37 } );
+	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 53 } );
 	canvas->DrawString( std::to_string( stats.wins ) );
 
 
 	// DRAW LOSSES
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 53 } );
+	canvas->SetPosition( Vector2{ position.X + 29, position.Y + 69 } );
 	canvas->DrawString( "Losses:" );
 
 	canvas->SetColor( RED_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 53 } );
+	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 69 } );
 	canvas->DrawString( std::to_string( stats.losses ) );
 
 
 	// DRAW STREAK
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 11, position.Y + 69 } );
+	canvas->SetPosition( Vector2{ position.X + 30, position.Y + 85 } );
 	canvas->DrawString( "Streak:" );
 
 	int streak = stats.streak;
-	if( streak > 0 )
+	SetColorByValue( canvas, static_cast<float>(streak));
+	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 85 } );
+	stringStream.str( "" );
+	stringStream << ( streak > 0 ? "+" : "" ) << streak;
+	if( stats.mmr.streakMmrGain != 0.0f )
 	{
-		canvas->SetColor( GREEN_COLOR );
+		stringStream << " (" << ( stats.mmr.streakMmrGain > 0 ? "+" : "" ) << stats.mmr.streakMmrGain << ")";
 	}
-	else if( streak < 0 )
-	{
-		canvas->SetColor( RED_COLOR );
-	}
-	canvas->SetPosition( Vector2{ position.X + 65, position.Y + 69 } );
-	canvas->DrawString( ( streak > 0 ? "+" : "" ) + std::to_string( streak ) );
+	canvas->DrawString( stringStream.str() );
 }
 
 Vector2 ssp::Renderer::GetStatsDisplaySize( ssp::playlist::Type type )
 {
 	switch( type )
 	{
-		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL: return Vector2{ 175, 88 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES: return Vector2{ 200, 88 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD: return Vector2{ 240, 88 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD: return Vector2{ 210, 88 };
-		default: return Vector2{ 220, 88 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL: return Vector2{ 175, 104 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES: return Vector2{ 200, 104 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD: return Vector2{ 240, 104 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD: return Vector2{ 210, 104 };
+		default: return Vector2{ 220, 104 };
+	}
+}
+
+void ssp::Renderer::SetColorByValue( CanvasWrapper *canvasWrapper, float value )
+{ 
+	if( value > 0.0f )
+	{
+		canvasWrapper->SetColor( GREEN_COLOR );
+	}
+	else if( value < 0.0f )
+	{
+		canvasWrapper->SetColor( RED_COLOR );
+	}
+	else
+	{
+		canvasWrapper->SetColor( LABEL_COLOR );
 	}
 }

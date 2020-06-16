@@ -112,10 +112,12 @@ void ssp::Match::SetWinLossAndStreak( match::Result result, ssp::playlist::Stats
 			if( stats.streak < 0 )
 			{
 				stats.streak = 1;
+				stats.mmr.streakMmrGain = stats.mmr.lastDiff;
 			}
 			else
 			{
 				stats.streak++;
+				stats.mmr.streakMmrGain += stats.mmr.lastDiff;
 			}
 		}
 		else if( result == ssp::match::Result::LOSS )
@@ -125,10 +127,12 @@ void ssp::Match::SetWinLossAndStreak( match::Result result, ssp::playlist::Stats
 			if( stats.streak > 0 )
 			{
 				stats.streak = -1;
+				stats.mmr.streakMmrGain = stats.mmr.lastDiff;
 			}
 			else
 			{
 				stats.streak--;
+				stats.mmr.streakMmrGain += stats.mmr.lastDiff;
 			}
 		}
 	}
