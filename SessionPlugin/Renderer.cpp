@@ -43,12 +43,12 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 
 	// DRAW MMR
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 43, position.Y + 21 } );
+	canvas->SetPosition( Vector2{ position.X + 47, position.Y + 21 } );
 	canvas->DrawString( "MMR:" );
 
 	float mmrGain = stats.mmr.GetDiff();
 	SetColorByValue( canvas, mmrGain );
-	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 21 } );
+	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 21 } );
 
 	stringStream.str( "" );
 	stats.mmr.SetDiffSStream( stringStream );
@@ -57,11 +57,11 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	// DRAW LAST GAME MMR GAIN
 	canvas->SetColor( LABEL_COLOR );
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 37 } );
-	canvas->DrawString( "Last MMR:" );
+	canvas->DrawString( "Last game:" );
 
 	float lastGameGain = stats.mmr.lastDiffDisplay;
 	SetColorByValue( canvas, lastGameGain );
-	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 37 } );
+	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 37 } );
 
 	stringStream.str( "" );
 	stats.mmr.SetLastGameSStream( stringStream );
@@ -70,32 +70,32 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 
 	// DRAW WINS
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 42, position.Y + 53 } );
+	canvas->SetPosition( Vector2{ position.X + 46, position.Y + 53 } );
 	canvas->DrawString( "Wins:" );
 
 	canvas->SetColor( GREEN_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 53 } );
+	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 53 } );
 	canvas->DrawString( std::to_string( stats.wins ) );
 
 
 	// DRAW LOSSES
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 29, position.Y + 69 } );
+	canvas->SetPosition( Vector2{ position.X + 33, position.Y + 69 } );
 	canvas->DrawString( "Losses:" );
 
 	canvas->SetColor( RED_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 69 } );
+	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 69 } );
 	canvas->DrawString( std::to_string( stats.losses ) );
 
 
 	// DRAW STREAK
 	canvas->SetColor( LABEL_COLOR );
-	canvas->SetPosition( Vector2{ position.X + 30, position.Y + 85 } );
+	canvas->SetPosition( Vector2{ position.X + 34, position.Y + 85 } );
 	canvas->DrawString( "Streak:" );
 
 	int streak = stats.streak;
 	SetColorByValue( canvas, static_cast<float>(streak));
-	canvas->SetPosition( Vector2{ position.X + 84, position.Y + 85 } );
+	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 85 } );
 	stringStream.str( "" );
 	stringStream << ( streak > 0 ? "+" : "" ) << streak;
 	if( stats.mmr.streakMmrGain != 0.0f )
