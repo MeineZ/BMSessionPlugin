@@ -30,6 +30,9 @@
     <ClCompile Include="MMR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MMRSessionOutput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SessionPlugin.h">
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MMRSessionOutput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

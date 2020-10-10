@@ -66,4 +66,5 @@ void ssp::MMR::Log( CVarManagerWrapper *cvarManager )
 	cvarManager->log( "Initial: " + std::to_string( initial) );
 	cvarManager->log( "Current: " + std::to_string( current ) );
 	cvarManager->log( "LastDiff: " + std::to_string( lastDiff ) );
+	cvarManager->log( "LastDiffDisplay: " + std::to_string( lastDiffDisplay ) );
 }

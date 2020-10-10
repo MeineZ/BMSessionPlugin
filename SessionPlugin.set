@@ -1,11 +1,17 @@
 Session Stats plugin
 9|This plugin will count wins/losses/mmr change
-1|Display stats on screen|cl_session_plugin_display
+1|Display stats on screen (appears after the start of your first match)|cl_session_plugin_display
 8|
 9|Stats display position
 10|cl_session_plugin_display
 5|X|cl_session_plugin_display_x|0|3840
 5|Y|cl_session_plugin_display_y|0|2160
+11|
+8|
+9|MMR Outputter
+9|Checking this checkbox will output your mmr per playlist to %BakkesModFolder%/data/SessionPlugin
+9|Note that this just adds your MMR data to the file, so playing on multiple Steam accounts saves all data to the same file.
+1|Output MMR to csv file|cl_session_plugin_output_mmr
 11|
 8|
 0|Reset stats|cl_session_plugin_reset

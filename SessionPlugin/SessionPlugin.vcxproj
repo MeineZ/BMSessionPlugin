@@ -150,6 +150,7 @@
   <ItemGroup>
     <ClCompile Include="Match.cpp" />
     <ClCompile Include="MMR.cpp" />
+    <ClCompile Include="MMRSessionOutput.cpp" />
     <ClCompile Include="Playlist.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SessionPlugin.cpp" />
@@ -158,6 +159,7 @@
     <ClInclude Include="Loggable.h" />
     <ClInclude Include="Match.h" />
     <ClInclude Include="MMR.h" />
+    <ClInclude Include="MMRSessionOutput.h" />
     <ClInclude Include="Playlist.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SessionPlugin.h" />

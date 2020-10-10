@@ -5,3 +5,9 @@
 //#define SSP_SETTINGS_DEBUG_RENDERER
 
 #endif
+
+#ifndef SSP_SETTINGS_DEBUG_MMR_OUTPUT
+
+#define SSP_SETTINGS_DEBUG_MMR_OUTPUT
+
+#endif
