@@ -23,6 +23,9 @@ namespace ssp // Session plugin
 			Stats( );
 			Stats( float initialMmr );
 
+			// Sets data of the stats. Only use for testing purposes as this may not work as intended!
+			void SetTestData( );
+
 			virtual void Log( CVarManagerWrapper *cvarManager );
 		};
 

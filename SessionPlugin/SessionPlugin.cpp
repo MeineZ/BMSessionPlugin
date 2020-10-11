@@ -14,8 +14,15 @@
 #define CVAR_NAME_SHOULD_LOG "cl_session_plugin_should_log"
 #define CVAR_NAME_DISPLAY_X "cl_session_plugin_display_x"
 #define CVAR_NAME_DISPLAY_Y "cl_session_plugin_display_y"
+#define CVAR_NAME_DISPLAY_TEST "cl_session_plugin_display_test"
+#define CVAR_NAME_COLOR_BACKGROUND "cl_session_plugin_background_color"
+#define CVAR_NAME_COLOR_TITLE "cl_session_plugin_title_color"
+#define CVAR_NAME_COLOR_LABEL "cl_session_plugin_label_color"
+#define CVAR_NAME_COLOR_POSITIVE "cl_session_plugin_positive_color"
+#define CVAR_NAME_COLOR_NEGATIVE "cl_session_plugin_negative_color"
 #define CVAR_NAME_RESET "cl_session_plugin_reset"
 #define CVAR_NAME_OUTPUT_MMR "cl_session_plugin_output_mmr"
+#define CVAR_NAME_RESET_COLORS "cl_session_plugin_reset_colors"
 
 #define HOOK_COUNTDOWN_BEGINSTATE "Function GameEvent_TA.Countdown.BeginState"
 #define HOOK_PLAYER_SCORED "Function TAGame.GameEvent_Soccar_TA.EventPlayerScored"
@@ -33,8 +40,9 @@ ssp::SessionPlugin::SessionPlugin():
 	currentMatch(),
 	renderer(),
 	steamID(),
-	displayStats( std::make_shared<bool>(true) ),
-	cvarMMROutputter( std::make_shared<bool>( true ) )
+	displayStats( std::make_shared<bool>( true ) ),
+	displayStatsTest( std::make_shared<bool>( false ) ),
+	cvarMMROutputter( std::make_shared<bool>( false ) )
 { }
 
 void ssp::SessionPlugin::onLoad()
@@ -52,6 +60,14 @@ void ssp::SessionPlugin::onLoad()
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_X, "420", "X position of the display", false, true, 0, true, 3840, true ).bindTo( renderer.posX );
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_Y, "0", "Y position of the display", false, true, 0, true, 2160, true ).bindTo( renderer.posY );
 
+	// Manage configurable colors
+	cvarManager->registerCvar( CVAR_NAME_DISPLAY_TEST, "0", "Show test stats", false, false, 0, false, 1, true ).bindTo( displayStatsTest );
+	cvarManager->registerCvar( CVAR_NAME_COLOR_BACKGROUND, "(0, 0, 0, 75)", "Background color", false, false, 0, false, 255, true ).bindTo( renderer.colorBackground );
+	cvarManager->registerCvar( CVAR_NAME_COLOR_TITLE, "(255, 255, 255, 127)", "Title color", false, false, 0, false, 255, true ).bindTo( renderer.colorTitle );
+	cvarManager->registerCvar( CVAR_NAME_COLOR_LABEL, "(255, 255, 255, 150)", "Label color", false, false, 0, false, 255, true ).bindTo( renderer.colorLabel );
+	cvarManager->registerCvar( CVAR_NAME_COLOR_POSITIVE, "(95, 232, 95, 127)", "Positive color", false, false, 0, false, 255, true ).bindTo( renderer.colorPositive );
+	cvarManager->registerCvar( CVAR_NAME_COLOR_NEGATIVE, "(232, 95, 95, 127)", "Negative color", false, false, 0, false, 255, true ).bindTo( renderer.colorNegative );
+
 	// MMR ourputter CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( cvarMMROutputter );
 
@@ -59,6 +75,10 @@ void ssp::SessionPlugin::onLoad()
 	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<std::string> params ) {
 		ResetStats();
 	}, "Start a fresh stats session", PERMISSION_ALL );
+
+	cvarManager->registerNotifier( CVAR_NAME_RESET_COLORS, [this] ( std::vector<std::string> params ) {
+		ResetColors();
+	}, "Reset to default colors", PERMISSION_ALL );
 
 	// Hook event: Match start
 	gameWrapper->HookEvent( HOOK_COUNTDOWN_BEGINSTATE, bind( &SessionPlugin::StartGame, this, std::placeholders::_1 ) );
@@ -221,13 +241,12 @@ void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 		// Render current session stats
 		renderer.RenderStats( &canvas, currentPlaylistStats->second, currentMatch.GetMatchType() );
 	}
-#ifdef SSP_SETTINGS_DEBUG_RENDERER
-	else
+	else if( *displayStatsTest || SSP_SETTINGS_DEBUG_RENDERER )
 	{
 		ssp::playlist::Stats stats;
+		stats.SetTestData();
 		renderer.RenderStats( &canvas, stats, ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES );
 	}
-#endif
 }
 
 void ssp::SessionPlugin::ResetStats()
@@ -237,6 +256,40 @@ void ssp::SessionPlugin::ResetStats()
 
 	// Completely reset the current match data
 	currentMatch.FullReset();
+}
+
+void ssp::SessionPlugin::ResetColors()
+{ 
+	cvarManager->log( "RESETING COLORS!" );
+	renderer.colorBackground->R = 0.f;
+	renderer.colorBackground->G = 0.f;
+	renderer.colorBackground->B = 0.f;
+	renderer.colorBackground->A = 75.f;
+	cvarManager->getCvar( CVAR_NAME_COLOR_BACKGROUND ).setValue( *(renderer.colorBackground) );
+
+	renderer.colorTitle->R = 255.f;
+	renderer.colorTitle->G = 255.f;
+	renderer.colorTitle->B = 255.f;
+	renderer.colorTitle->A = 127.f;
+	cvarManager->getCvar( CVAR_NAME_COLOR_TITLE ).setValue( *( renderer.colorTitle ) );
+
+	renderer.colorLabel->R = 255.f;
+	renderer.colorLabel->G = 255.f;
+	renderer.colorLabel->B = 255.f;
+	renderer.colorLabel->A = 150.f;
+	cvarManager->getCvar( CVAR_NAME_COLOR_LABEL ).setValue( *( renderer.colorLabel ) );
+
+	renderer.colorPositive->R = 95.f;
+	renderer.colorPositive->G = 232.f;
+	renderer.colorPositive->B = 95.f;
+	renderer.colorPositive->A = 127.f;
+	cvarManager->getCvar( CVAR_NAME_COLOR_POSITIVE ).setValue( *( renderer.colorPositive ) );
+
+	renderer.colorNegative->R = 232.f;
+	renderer.colorNegative->G = 95.f;
+	renderer.colorNegative->B = 95.f;
+	renderer.colorNegative->A = 127.f;
+	cvarManager->getCvar( CVAR_NAME_COLOR_NEGATIVE ).setValue( *( renderer.colorNegative ) );
 }
 
 bool ssp::SessionPlugin::CheckValidGame()

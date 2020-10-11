@@ -26,8 +26,8 @@ namespace ssp // SessionPlugin
 		SteamID steamID; // Steam ID info
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
-		std::shared_ptr<bool> cvarMMROutputter; // Setting if we should output mmr
-		
+		std::shared_ptr<bool> displayStatsTest; // Setting if we should display stats test
+		std::shared_ptr<bool> cvarMMROutputter; // Setting if we should output mmr		
 
 	public:
 		SessionPlugin();
@@ -49,15 +49,17 @@ namespace ssp // SessionPlugin
 		// Stats reset
 		void ResetStats();
 
+		// Colors reset
+		void ResetColors();
+
 		// Check if game is valid to track
 		bool CheckValidGame();
 
 		// Updates the current Mmr of the player
-		void UpdateCurrentMmr( int retryCount , std::function<void (bool, bool)> onSuccess = nullptr );
+		void UpdateCurrentMmr( int retryCount, std::function<void( bool, bool )> onSuccess = nullptr );
 
 		// Try to determine the match result (if possible and allowed)
-		void DetermineMatchResult(bool allowForce, bool updateMmr = true);
-
+		void DetermineMatchResult( bool allowForce, bool updateMmr = true );
 	};
 }
 

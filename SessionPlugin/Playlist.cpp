@@ -76,6 +76,19 @@ namespace ssp // SessionPlugin
 		{
 		}
 
+		void Stats::SetTestData()
+		{
+			wins = 5;
+			losses = 2;
+			streak = 3;
+
+			mmr = ssp::MMR( 1743.00f );
+			mmr.current = 1772.43f;
+			mmr.lastDiffDisplay = 9.64f;
+			mmr.streakMmrGain = 28.92f;
+
+		}
+
 		void Stats::Log( CVarManagerWrapper *cvarManager )
 		{
 			mmr.Log( cvarManager );

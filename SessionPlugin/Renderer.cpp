@@ -5,15 +5,16 @@
 #include <bakkesmod/wrappers/cvarmanagerwrapper.h>
 #include <bakkesmod/wrappers/canvaswrapper.h>
 
-#define BOX_FILL_COLOR 0, 0, 0, 75
-#define TITLE_COLOR 255, 255, 255, 127
-#define LABEL_COLOR 255, 255, 255, 150
-#define GREEN_COLOR 95, 232, 95, 127
-#define RED_COLOR 232, 95, 95, 127
+#include <SessionPlugin.h>
 
 ssp::Renderer::Renderer() :
 	posX(std::make_shared<int>(420)),
-	posY(std::make_shared<int>(0))
+	posY(std::make_shared<int>(0)),
+	colorBackground( std::make_shared<LinearColor>( LinearColor() ) ),
+	colorTitle( std::make_shared<LinearColor>( LinearColor() ) ),
+	colorLabel( std::make_shared<LinearColor>( LinearColor() ) ),
+	colorPositive( std::make_shared<LinearColor>( LinearColor() ) ),
+	colorNegative( std::make_shared<LinearColor>( LinearColor() ) )
 { }
 
 void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &stats, ssp::playlist::Type type )
@@ -26,13 +27,13 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	};
 
 	// DRAW BOX
-	canvas->SetColor( BOX_FILL_COLOR );
+	canvas->SetColor( *colorBackground );
 	canvas->SetPosition( position );
 	canvas->FillBox( GetStatsDisplaySize( type ) );
 
 
 	// DRAW CURRENT PLAYLIST
-	canvas->SetColor( TITLE_COLOR );
+	canvas->SetColor( *colorTitle );
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
 
 	stringStream << ssp::playlist::GetName( type ) << " (";
@@ -42,7 +43,7 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 
 
 	// DRAW MMR
-	canvas->SetColor( LABEL_COLOR );
+	canvas->SetColor( *colorLabel );
 	canvas->SetPosition( Vector2{ position.X + 47, position.Y + 21 } );
 	canvas->DrawString( "MMR:" );
 
@@ -55,7 +56,7 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	canvas->DrawString( stringStream.str() );
 
 	// DRAW LAST GAME MMR GAIN
-	canvas->SetColor( LABEL_COLOR );
+	canvas->SetColor( *colorLabel );
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 37 } );
 	canvas->DrawString( "Last game:" );
 
@@ -69,32 +70,32 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 
 
 	// DRAW WINS
-	canvas->SetColor( LABEL_COLOR );
+	canvas->SetColor( *colorLabel );
 	canvas->SetPosition( Vector2{ position.X + 46, position.Y + 53 } );
 	canvas->DrawString( "Wins:" );
 
-	canvas->SetColor( GREEN_COLOR );
+	canvas->SetColor( *colorPositive );
 	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 53 } );
 	canvas->DrawString( std::to_string( stats.wins ) );
 
 
 	// DRAW LOSSES
-	canvas->SetColor( LABEL_COLOR );
+	canvas->SetColor( *colorLabel );
 	canvas->SetPosition( Vector2{ position.X + 33, position.Y + 69 } );
 	canvas->DrawString( "Losses:" );
 
-	canvas->SetColor( RED_COLOR );
+	canvas->SetColor( *colorNegative );
 	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 69 } );
 	canvas->DrawString( std::to_string( stats.losses ) );
 
 
 	// DRAW STREAK
-	canvas->SetColor( LABEL_COLOR );
+	canvas->SetColor( *colorLabel );
 	canvas->SetPosition( Vector2{ position.X + 34, position.Y + 85 } );
 	canvas->DrawString( "Streak:" );
 
 	int streak = stats.streak;
-	SetColorByValue( canvas, static_cast<float>(streak));
+	SetColorByValue(canvas, static_cast<float>(streak));
 	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 85 } );
 	stringStream.str( "" );
 	stringStream << ( streak > 0 ? "+" : "" ) << streak;
@@ -117,18 +118,18 @@ Vector2 ssp::Renderer::GetStatsDisplaySize( ssp::playlist::Type type )
 	}
 }
 
-void ssp::Renderer::SetColorByValue( CanvasWrapper *canvasWrapper, float value )
+void ssp::Renderer::SetColorByValue(CanvasWrapper *canvasWrapper, float value )
 { 
 	if( value > 0.0f )
 	{
-		canvasWrapper->SetColor( GREEN_COLOR );
+		canvasWrapper->SetColor( *colorPositive );
 	}
 	else if( value < 0.0f )
 	{
-		canvasWrapper->SetColor( RED_COLOR );
+		canvasWrapper->SetColor( *colorNegative );
 	}
 	else
 	{
-		canvasWrapper->SetColor( LABEL_COLOR );
+		canvasWrapper->SetColor( *colorLabel );
 	}
 }

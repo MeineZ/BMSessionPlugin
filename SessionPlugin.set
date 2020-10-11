@@ -8,10 +8,18 @@ Session Stats plugin
 5|Y|cl_session_plugin_display_y|0|2160
 11|
 8|
+9|Stats display colors
+1|Show test stats (spawn the window to preview changes)|cl_session_plugin_display_test
+13|Background color|cl_session_plugin_background_color
+13|Title color|cl_session_plugin_title_color
+13|Label color|cl_session_plugin_label_color
+13|Positive color|cl_session_plugin_positive_color
+13|Negative color|cl_session_plugin_negative_color
+0|Reset colors|cl_session_plugin_reset_colors
+8|
 9|MMR Outputter
-9|Checking this checkbox will output your mmr per playlist to %BakkesModFolder%/data/SessionPlugin
+9|Checking this checkbox will output your mmr per playlist to <BakkesModFolder>/data/SessionPlugin
 9|Note that this just adds your MMR data to the file, so playing on multiple Steam accounts saves all data to the same file.
 1|Output MMR to csv file|cl_session_plugin_output_mmr
-11|
 8|
 0|Reset stats|cl_session_plugin_reset
