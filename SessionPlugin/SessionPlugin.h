@@ -24,8 +24,10 @@ namespace ssp // SessionPlugin
 		ssp::Match currentMatch; // Contains info about the current match
 		ssp::Renderer renderer; // Renderer that can render different objects
 		SteamID steamID; // Steam ID info
+		bool isInMatch;
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
+		std::shared_ptr<bool> displayStatsInMatch; // Setting if we should display stats during matches
 		std::shared_ptr<bool> displayStatsTest; // Setting if we should display stats test
 		std::shared_ptr<bool> cvarMMROutputter; // Setting if we should output mmr		
 

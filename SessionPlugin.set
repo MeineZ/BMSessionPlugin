@@ -1,6 +1,9 @@
 Session Stats plugin
 9|This plugin will count wins/losses/mmr change
 1|Display stats on screen (appears after the start of your first match)|cl_session_plugin_display
+10|cl_session_plugin_display
+1|Show stats during matches|cl_session_plugin_display_in_matches
+11|
 8|
 9|Stats display position
 10|cl_session_plugin_display

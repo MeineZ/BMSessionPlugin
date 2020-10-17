@@ -11,6 +11,7 @@
 #include <Settings.h>
 
 #define CVAR_NAME_DISPLAY "cl_session_plugin_display"
+#define CVAR_NAME_DISPLAY_IN_MATCH "cl_session_plugin_display_in_matches"
 #define CVAR_NAME_SHOULD_LOG "cl_session_plugin_should_log"
 #define CVAR_NAME_DISPLAY_X "cl_session_plugin_display_x"
 #define CVAR_NAME_DISPLAY_Y "cl_session_plugin_display_y"
@@ -40,7 +41,9 @@ ssp::SessionPlugin::SessionPlugin():
 	currentMatch(),
 	renderer(),
 	steamID(),
+	isInMatch( false ),
 	displayStats( std::make_shared<bool>( true ) ),
+	displayStatsInMatch( std::make_shared<bool>( true ) ),
 	displayStatsTest( std::make_shared<bool>( false ) ),
 	cvarMMROutputter( std::make_shared<bool>( false ) )
 { }
@@ -51,10 +54,11 @@ void ssp::SessionPlugin::onLoad()
 	ResetStats();
 
 	// log startup to console
-	cvarManager->log( std::string(exports.pluginName) + std::string( " version: ") + std::string( exports.pluginVersion) );
+	cvarManager->log( std::string( exports.pluginName ) + std::string( " version: " ) + std::string( exports.pluginVersion ) );
 
-	// CVar initialization
+	// Display CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY, "1", "Display session stats", false, true, 0, true, 1, true ).bindTo( displayStats );
+	cvarManager->registerCvar( CVAR_NAME_DISPLAY_IN_MATCH, "1", "Show stats during matches", false, true, 0, true, 1, true ).bindTo( displayStatsInMatch );
 
 	// Renderer CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_X, "420", "X position of the display", false, true, 0, true, 3840, true ).bindTo( renderer.posX );
@@ -102,6 +106,9 @@ void ssp::SessionPlugin::onLoad()
 
 	// Register drawable
 	gameWrapper->RegisterDrawable( std::bind( &SessionPlugin::Render, this, std::placeholders::_1 ) );
+
+	// Set default properties
+	isInMatch = false;
 }
 
 void ssp::SessionPlugin::onUnload()
@@ -121,26 +128,30 @@ void ssp::SessionPlugin::onUnload()
 
 void ssp::SessionPlugin::InMainMenu( std::string eventName )
 {
+	isInMatch = false;
+
 	// Try to update the current MMR if a steam id is known and a playlist session is active
-	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()) )
+	if( ssp::playlist::IsKnown( currentMatch.GetMatchType() ) )
 	{
 		if( steamID.ID > 0 )
 		{
 			// Update MMR stats
-			UpdateCurrentMmr( 3 , std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
+			UpdateCurrentMmr( 3, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
 		}
 	}
 }
 
 void ssp::SessionPlugin::StartGame( std::string eventName )
 {
-	DetermineMatchResult( CheckValidGame(), true);
+	DetermineMatchResult( CheckValidGame(), true );
 
 	// If the match has been determined and it's a valid (trackable) game
 	if( !currentMatch.IsActive() )
 	{
 		if( !CheckValidGame() )
 			return;
+
+		isInMatch = true;
 
 		// We can start a new one
 		// Get server wrapper and steam id
@@ -164,7 +175,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 			stats[matchType] = ssp::playlist::Stats( mmr );
 		}
 
-		mmrSessionOutput.OnNewGame( &*cvarManager , &*gameWrapper, currentMatch.GetMatchType(), stats[matchType].mmr, steamID, currentMatch.GetCurrentTeam() );
+		mmrSessionOutput.OnNewGame( &*cvarManager, &*gameWrapper, currentMatch.GetMatchType(), stats[matchType].mmr, steamID, currentMatch.GetCurrentTeam() );
 
 		// Set last found diff as this also tells us that a new game was started
 		stats[matchType].mmr.lastDiff = 0.f;
@@ -173,6 +184,8 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 
 void ssp::SessionPlugin::OnPlayerScored( std::string eventName )
 {
+	isInMatch = true;
+
 	// Try to update the current MMR if a match and a playlist session are active
 	if( currentMatch.IsActive() && stats.find( static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) ) ) != stats.end() )
 	{
@@ -183,15 +196,17 @@ void ssp::SessionPlugin::OnPlayerScored( std::string eventName )
 		gameWrapper->SetTimeout( [this] ( GameWrapper *gameWrapper ) {
 			// Get the current score to update the current game data (since a player scored)
 			currentMatch.SetCurrentGameGoals( gameWrapper );
-		}, 0.2 );
+		}, 0.2f );
 	}
 }
 
 void ssp::SessionPlugin::EndGame( std::string eventName )
 {
+	isInMatch = false;
+
 	// Only mark the end of a new game when one is active and the current playlist exists
 	/// just in case the player reset his stats just before the end of th game (you never know :) ) 
-	int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ));
+	int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
 	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{
 		// Check if we are good to process the state of the game
@@ -209,13 +224,15 @@ void ssp::SessionPlugin::EndGame( std::string eventName )
 		}
 
 		// Update MMR stats and determine win/loss
-		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ));
+		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
 
 	} // If currentgame is active
 }
 
 void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 {
+	isInMatch = false;
+
 	int matchType = static_cast<int>( ssp::playlist::ConvertToCasualType( currentMatch.GetMatchType() ) );
 	if( currentMatch.IsActive() && stats.find( matchType ) != stats.end() )
 	{ // We know that we are not in a valid game anymore, so we'll have to work with the latest know score
@@ -238,6 +255,9 @@ void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 	// Only render if its allowed to, the playlist is known and there are stats to show
 	if( *displayStats && matchType != ssp::playlist::Type::PLAYLIST_UNKOWN && currentPlaylistStats != stats.end() )
 	{
+		if( !*displayStatsInMatch && isInMatch )
+			return;
+
 		// Render current session stats
 		renderer.RenderStats( &canvas, currentPlaylistStats->second, currentMatch.GetMatchType() );
 	}
@@ -259,13 +279,13 @@ void ssp::SessionPlugin::ResetStats()
 }
 
 void ssp::SessionPlugin::ResetColors()
-{ 
+{
 	cvarManager->log( "RESETING COLORS!" );
 	renderer.colorBackground->R = 0.f;
 	renderer.colorBackground->G = 0.f;
 	renderer.colorBackground->B = 0.f;
 	renderer.colorBackground->A = 75.f;
-	cvarManager->getCvar( CVAR_NAME_COLOR_BACKGROUND ).setValue( *(renderer.colorBackground) );
+	cvarManager->getCvar( CVAR_NAME_COLOR_BACKGROUND ).setValue( *( renderer.colorBackground ) );
 
 	renderer.colorTitle->R = 255.f;
 	renderer.colorTitle->G = 255.f;
@@ -304,11 +324,11 @@ bool ssp::SessionPlugin::CheckValidGame()
 	return false;
 }
 
-void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount, std::function<void(bool, bool)> onSuccess )
+void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( bool, bool )> onSuccess )
 {
 	ssp::playlist::Type playlistType = currentMatch.GetMatchType();
 	// Only update MMR if we know what playlist type to update
-	if( ssp::playlist::IsKnown(currentMatch.GetMatchType()))
+	if( ssp::playlist::IsKnown( currentMatch.GetMatchType() ) )
 	{
 		// Only try to receive MMR if we have tries left
 		if( retryCount >= 0 )
@@ -335,7 +355,7 @@ void ssp::SessionPlugin::UpdateCurrentMmr(int retryCount, std::function<void(boo
 				{
 					mmrSessionOutput.OnEndGame( &*cvarManager, playlistType, stats[convertedMatchType].mmr );
 				}
-				onSuccess(false, false);
+				onSuccess( false, false );
 			}
 		}
 	}
