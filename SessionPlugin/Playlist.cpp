@@ -22,7 +22,7 @@ namespace ssp // SessionPlugin
 				case int( Type::PLAYLIST_RANKEDRUMBLE ) :			return Type::PLAYLIST_RANKEDRUMBLE;
 				case int( Type::PLAYLIST_RANKEDDROPSHOT ) :			return Type::PLAYLIST_RANKEDDROPSHOT;
 				case int( Type::PLAYLIST_RANKEDSNOWDAY ) :			return Type::PLAYLIST_RANKEDSNOWDAY;
-				default:											return Type::PLAYLIST_UNKOWN;
+				default:											return Type::PLAYLIST_UNKNOWN;
 			}
 		}
 
@@ -42,7 +42,7 @@ namespace ssp // SessionPlugin
 				case Type::PLAYLIST_RANKEDRUMBLE:			return "Ranked Rumble";
 				case Type::PLAYLIST_RANKEDDROPSHOT:			return "Ranked Dropshot";
 				case Type::PLAYLIST_RANKEDSNOWDAY:			return "Ranked Snowday";
-				case Type::PLAYLIST_UNKOWN:
+				case Type::PLAYLIST_UNKNOWN:
 				default:									return "";
 			}
 		}

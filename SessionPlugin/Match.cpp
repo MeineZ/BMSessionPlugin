@@ -8,7 +8,7 @@
 #include <SessionPlugin.h>
 
 ssp::Match::Match() :
-	type(ssp::playlist::Type::PLAYLIST_UNKOWN),
+	type(ssp::playlist::Type::PLAYLIST_UNKNOWN),
 	goals(),
 	currentTeam(-1),
 	isActive(false),
@@ -42,7 +42,7 @@ void ssp::Match::FullReset()
 {
 	// Hard reset data
 	MatchEndReset();
-	type = ssp::playlist::Type::PLAYLIST_UNKOWN;
+	type = ssp::playlist::Type::PLAYLIST_UNKNOWN;
 	canBeDetermined = false;
 }
 

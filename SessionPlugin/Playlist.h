@@ -32,7 +32,7 @@ namespace ssp // Session plugin
 		// All supported types (types that are consider worth tracking).
 		enum class Type
 		{
-			PLAYLIST_UNKOWN				= -1,
+			PLAYLIST_UNKNOWN			= -1,
 			PLAYLIST_DUEL				=  1,
 			PLAYLIST_DOUBLES			=  2,
 			PLAYLIST_STANDARD			=  3,
@@ -68,7 +68,7 @@ namespace ssp // Session plugin
 
 inline bool ssp::playlist::IsKnown( ssp::playlist::Type type )
 {
-	return type != ssp::playlist::Type::PLAYLIST_UNKOWN;
+	return type != ssp::playlist::Type::PLAYLIST_UNKNOWN;
 }
 
 inline ssp::playlist::Type ssp::playlist::ConvertToCasualType( ssp::playlist::Type type )

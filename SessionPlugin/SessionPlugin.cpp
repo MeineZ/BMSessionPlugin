@@ -253,7 +253,7 @@ void ssp::SessionPlugin::Render( CanvasWrapper canvas )
 	auto currentPlaylistStats = stats.find( static_cast<int>( ssp::playlist::ConvertToCasualType( matchType ) ) );
 
 	// Only render if its allowed to, the playlist is known and there are stats to show
-	if( *displayStats && matchType != ssp::playlist::Type::PLAYLIST_UNKOWN && currentPlaylistStats != stats.end() )
+	if( *displayStats && matchType != ssp::playlist::Type::PLAYLIST_UNKNOWN && currentPlaylistStats != stats.end() )
 	{
 		if( !*displayStatsInMatch && isInMatch )
 			return;
