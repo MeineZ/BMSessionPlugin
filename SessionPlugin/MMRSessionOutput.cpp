@@ -4,8 +4,8 @@
 
 #define MMR_OUTPUT_CURRENT_PLAYER 0
 
-#define MMR_OUTPUT_FILE_PATH ".\\bakkesmod\\data\\SessionPlugin\\MMR_"
-#define MMR_OUTPUT_FILE_EXTENSION ".csv"
+#define MMR_OUTPUT_FILE_PATH L"SessionPlugin\\MMR_"
+#define MMR_OUTPUT_FILE_EXTENSION L".csv"
 
 ssp::MMRSessionOutput::MMRSessionOutput() :
 	didDetermine(false),
@@ -25,7 +25,7 @@ ssp::MMRSessionOutput::~MMRSessionOutput()
 	allMMR.clear();
 }
 
-void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, SteamID & currentPlayerSteamID, int currentTeam)
+void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam)
 { 
 	stopMMRfetch = false;
 	int gameSize = GetPlaylistGameSize( playlist );
@@ -44,8 +44,8 @@ void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrap
 					for( int i = 0; i < gameMembers.Count(); ++i )
 					{
 						PriWrapper gameMember = gameMembers.Get( i );
-						SteamID id = gameMember.GetUniqueId();
-						if( id.ID == currentPlayerSteamID.ID )
+						UniqueIDWrapper id = gameMember.GetUniqueIdWrapper();
+						if( id.GetUID() == currentPlayerUniqueID.GetUID() )
 						{
 							allMMR[playlist][MMR_OUTPUT_CURRENT_PLAYER] = currentPlayerMMR.current;
 						}
@@ -67,7 +67,7 @@ void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrap
 	} // if gameSize > 0
 }
 
-void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR)
+void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper &currentPlayerUniqueID )
 {
 	stopMMRfetch = true;
 
@@ -80,7 +80,7 @@ void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, ssp::pla
 		}
 
 		std::ofstream outfile;
-		outfile.open( MMR_OUTPUT_FILE_PATH + GetPlaylistFileName(playlist) + MMR_OUTPUT_FILE_EXTENSION, std::ios_base::app ); // append
+		outfile.open(gameWrapper->GetDataFolderW( ) + MMR_OUTPUT_FILE_PATH + std::to_wstring( currentPlayerUniqueID.GetUID() ) + GetPlaylistFileName(playlist) + MMR_OUTPUT_FILE_EXTENSION, std::ios_base::app ); // append
 		for( int i = 0; i < gameSize; ++i )
 		{
 			outfile << allMMR[playlist][i] << ",";
@@ -91,19 +91,19 @@ void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, ssp::pla
 	}
 }
 
-void ssp::MMRSessionOutput::RequestMMR( GameWrapper *gameWrapper, SteamID &steamId, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess )
+void ssp::MMRSessionOutput::RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess )
 {
 	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
 	ssp::MMR mmr( 0.0f );
-	if( !mmr.RequestMmrUpdate( gameWrapper, steamId, &matchType, false ) )
+	if( !mmr.RequestMmrUpdate( gameWrapper, uniqueID, &matchType, false ) )
 	{
-		if( !mmr.RequestMmrUpdate( gameWrapper, steamId, &matchType, true ) )
+		if( !mmr.RequestMmrUpdate( gameWrapper, uniqueID, &matchType, true ) )
 		{
 			allMMR[matchType][MMR_OUTPUT_CURRENT_PLAYER] = -1.0f;
 			if( !stopMMRfetch )
 			{
-				gameWrapper->SetTimeout( [this, gameWrapper, steamId, matchType, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
-					this->RequestMMR( gameWrapper, const_cast<SteamID &>( steamId ), matchType, retryCount - 1, onSuccess );
+				gameWrapper->SetTimeout( [this, gameWrapper, uniqueID, matchType, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
+					this->RequestMMR( gameWrapper, const_cast<UniqueIDWrapper &>( uniqueID ), matchType, retryCount - 1, onSuccess );
 				}, 2.f );
 			}
 			return;

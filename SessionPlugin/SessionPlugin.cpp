@@ -40,7 +40,7 @@ ssp::SessionPlugin::SessionPlugin():
 	stats(),
 	currentMatch(),
 	renderer(),
-	steamID(),
+	uniqueID(),
 	isInMatch( false ),
 	displayStats( std::make_shared<bool>( true ) ),
 	displayStatsInMatch( std::make_shared<bool>( true ) ),
@@ -133,7 +133,7 @@ void ssp::SessionPlugin::InMainMenu( std::string eventName )
 	// Try to update the current MMR if a steam id is known and a playlist session is active
 	if( ssp::playlist::IsKnown( currentMatch.GetMatchType() ) )
 	{
-		if( steamID.ID > 0 )
+		if( uniqueID.GetUID() > 0 )
 		{
 			// Update MMR stats
 			UpdateCurrentMmr( 3, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
@@ -156,7 +156,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		// We can start a new one
 		// Get server wrapper and steam id
 		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
-		steamID.ID = gameWrapper->GetSteamID();
+		uniqueID = gameWrapper->GetUniqueID();
 
 		// Initialize current match data
 		currentMatch.OnMatchStart( &*gameWrapper );
@@ -170,12 +170,12 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		if( stats.find( matchType ) == stats.end() )
 		{
 			// Initialize session stats whenplaylist hasn't been played yet during this session
-			float mmr = mmrWrapper.GetPlayerMMR( steamID, matchType );
+			float mmr = mmrWrapper.GetPlayerMMR( uniqueID, matchType );
 
 			stats[matchType] = ssp::playlist::Stats( mmr );
 		}
 
-		mmrSessionOutput.OnNewGame( &*cvarManager, &*gameWrapper, currentMatch.GetMatchType(), stats[matchType].mmr, steamID, currentMatch.GetCurrentTeam() );
+		mmrSessionOutput.OnNewGame( &*cvarManager, &*gameWrapper, currentMatch.GetMatchType(), stats[matchType].mmr, uniqueID, currentMatch.GetCurrentTeam() );
 
 		// Set last found diff as this also tells us that a new game was started
 		stats[matchType].mmr.lastDiff = 0.f;
@@ -338,9 +338,9 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( b
 			int convertedMatchType = static_cast<int>( ssp::playlist::ConvertToCasualType( playlistType ) );
 
 			// Check if the MMR is currently synced
-			if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, steamID, &playlistType, false ) )
+			if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, uniqueID, &playlistType, false ) )
 			{
-				if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, steamID, &playlistType, true ) )
+				if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, uniqueID, &playlistType, true ) )
 				{
 					gameWrapper->SetTimeout( [this, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
 						this->UpdateCurrentMmr( retryCount - 1, onSuccess );
@@ -353,7 +353,7 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( b
 			{
 				if( *cvarMMROutputter == true )
 				{
-					mmrSessionOutput.OnEndGame( &*cvarManager, playlistType, stats[convertedMatchType].mmr );
+					mmrSessionOutput.OnEndGame( &*cvarManager, &*gameWrapper, playlistType, stats[convertedMatchType].mmr, uniqueID );
 				}
 				onSuccess( false, false );
 			}

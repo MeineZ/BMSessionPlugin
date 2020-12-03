@@ -23,7 +23,7 @@ namespace ssp // SessionPlugin
 		std::map<int, ssp::playlist::Stats> stats; // All stats per playlist
 		ssp::Match currentMatch; // Contains info about the current match
 		ssp::Renderer renderer; // Renderer that can render different objects
-		SteamID steamID; // Steam ID info
+		UniqueIDWrapper uniqueID; // Unique ID info
 		bool isInMatch;
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats

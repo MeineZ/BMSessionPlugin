@@ -15,13 +15,13 @@ ssp::MMR::MMR( float initialMmr ) :
 	streakMmrGain(0.0f)
 { }
 
-bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, SteamID &steamID, const ssp::playlist::Type const *matchType, bool force )
+bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type const *matchType, bool force )
 {
 
 	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
 	if( force )
 	{
-		float mmr = mmrWrapper.GetPlayerMMR( steamID, static_cast<int>( *matchType ) );
+		float mmr = mmrWrapper.GetPlayerMMR( uniqueID, static_cast<int>( *matchType ) );
 		if( current == mmr || std::floor( mmr ) < 101.f )
 		{
 			return false;
@@ -39,9 +39,9 @@ bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, SteamID &steamID, con
 	}
 	else
 	{
-		if( mmrWrapper.IsSynced( steamID, static_cast<int>( *matchType ) ) && !mmrWrapper.IsSyncing( steamID ) )
+		if( mmrWrapper.IsSynced( uniqueID, static_cast<int>( *matchType ) ) && !mmrWrapper.IsSyncing( uniqueID ) )
 		{
-			float mmr = mmrWrapper.GetPlayerMMR( steamID, static_cast<int>( *matchType ) );
+			float mmr = mmrWrapper.GetPlayerMMR( uniqueID, static_cast<int>( *matchType ) );
 			if( current == mmr || std::floor( mmr ) < 101.f )
 			{
 				return false;

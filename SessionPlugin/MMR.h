@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include <bakkesmod/wrappers/wrapperstructs.h>
+#include <bakkesmod/wrappers/UniqueIDWrapper.h>
 
 #include <Loggable.h>
 
@@ -31,7 +32,7 @@ namespace ssp // SessionPlugin
 
 		MMR( float initialMmr );
 
-		bool RequestMmrUpdate(GameWrapper * gameWrapper, SteamID & steamId, const ssp::playlist::Type const * matchType, bool force = true);
+		bool RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type const * matchType, bool force = true);
 
 		virtual void Log( CVarManagerWrapper *cvarManager );
 

@@ -19,19 +19,19 @@ namespace ssp
 		MMRSessionOutput();
 		~MMRSessionOutput();
 
-		void OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, SteamID & currentPlayerSteamID, int currentTeam );
+		void OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam );
 
-		void OnEndGame( CVarManagerWrapper *cvarManager, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR );
+		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &currentPlayerUniqueID );
 
 	private:
 		std::map<ssp::playlist::Type, std::vector<float>> allMMR;
 		bool didDetermine;
 		bool stopMMRfetch;
 
-		void RequestMMR( GameWrapper *gameWrapper, SteamID &steamId, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess );
+		void RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess );
 
 		inline int GetPlaylistGameSize( ssp::playlist::Type playlist);
-		inline std::string GetPlaylistFileName( ssp::playlist::Type playlist );
+		inline std::wstring GetPlaylistFileName( ssp::playlist::Type playlist );
 	};
 
 	inline int MMRSessionOutput::GetPlaylistGameSize( ssp::playlist::Type playlist )
@@ -52,24 +52,24 @@ namespace ssp
 				return -1;
 		}
 	}
-	inline std::string MMRSessionOutput::GetPlaylistFileName( ssp::playlist::Type playlist )
+	inline std::wstring MMRSessionOutput::GetPlaylistFileName( ssp::playlist::Type playlist )
 	{
 		switch( playlist )
 		{
 		#ifdef SSP_SETTINGS_DEBUG_MMR_OUTPUT
 			case ssp::playlist::Type::PLAYLIST_DUEL:
 		#endif
-				return "CasualSolo";
+				return L"CasualSolo";
 			case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
-				return "Solo";
+				return L"Solo";
 			case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
-				return "Doubles";
+				return L"Doubles";
 			case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
-				return "Standard";
+				return L"Standard";
 			case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD:
-				return "SoloStandard";
+				return L"SoloStandard";
 			default:
-				return "Unknown";
+				return L"Unknown";
 		}
 	}
 }
