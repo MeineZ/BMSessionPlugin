@@ -4,6 +4,7 @@
 #include <string>
 #include <iomanip>
 
+#include <bakkesmod/plugin/bakkesmodsdk.h>
 #include <bakkesmod/wrappers/wrapperstructs.h>
 #include <bakkesmod/wrappers/UniqueIDWrapper.h>
 
