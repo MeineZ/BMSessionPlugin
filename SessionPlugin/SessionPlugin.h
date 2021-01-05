@@ -25,6 +25,7 @@ namespace ssp // SessionPlugin
 		ssp::Renderer renderer; // Renderer that can render different objects
 		UniqueIDWrapper uniqueID; // Unique ID info
 		bool isInMatch;
+		std::string playerName;
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
 		std::shared_ptr<bool> displayStatsInMatch; // Setting if we should display stats during matches

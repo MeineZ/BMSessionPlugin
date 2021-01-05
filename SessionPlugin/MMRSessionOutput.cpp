@@ -2,10 +2,12 @@
 
 #include <fstream>
 
+#include <bakkesmod/wrappers/wrapperstructs.h>
+
 #define MMR_OUTPUT_CURRENT_PLAYER 0
 
-#define MMR_OUTPUT_FILE_PATH L"SessionPlugin\\MMR_"
-#define MMR_OUTPUT_FILE_EXTENSION L".csv"
+#define MMR_OUTPUT_FILE_PATH "SessionPlugin\\MMR_"
+#define MMR_OUTPUT_FILE_EXTENSION ".csv"
 
 ssp::MMRSessionOutput::MMRSessionOutput() :
 	didDetermine(false),
@@ -67,7 +69,7 @@ void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrap
 	} // if gameSize > 0
 }
 
-void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper &currentPlayerUniqueID )
+void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper )
 {
 	stopMMRfetch = true;
 
@@ -80,7 +82,16 @@ void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, GameWrap
 		}
 
 		std::ofstream outfile;
-		outfile.open(gameWrapper->GetDataFolderW( ) + MMR_OUTPUT_FILE_PATH + std::to_wstring( currentPlayerUniqueID.GetUID() ) + GetPlaylistFileName(playlist) + MMR_OUTPUT_FILE_EXTENSION, std::ios_base::app ); // append
+		std::string fn = (gameWrapper->GetDataFolder() / ( 
+			MMR_OUTPUT_FILE_PATH + 
+			GetPlaylistFileName( playlist ) +
+			MMR_OUTPUT_FILE_EXTENSION 
+		)).generic_string();
+
+		outfile.open(fn, std::ios_base::app ); // append
+		if( !outfile.is_open() )
+			return;
+
 		for( int i = 0; i < gameSize; ++i )
 		{
 			outfile << allMMR[playlist][i] << ",";

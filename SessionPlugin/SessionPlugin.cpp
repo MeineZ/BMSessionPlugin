@@ -8,6 +8,9 @@
 #include <bakkesmod/wrappers/MMRWrapper.h>
 #include <bakkesmod/wrappers/GameEvent/ServerWrapper.h>
 
+
+#include <fstream>
+
 #include <Settings.h>
 
 #define CVAR_NAME_DISPLAY "cl_session_plugin_display"
@@ -33,7 +36,7 @@
 #define HOOK_HANDLE_PENALTY_CHANGED "Function TAGame.GFxHUD_TA.HandlePenaltyChanged"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.5", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.9", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	mmrSessionOutput(),
@@ -154,8 +157,7 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 		isInMatch = true;
 
 		// We can start a new one
-		// Get server wrapper and steam id
-		ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
+		// Get unique id
 		uniqueID = gameWrapper->GetUniqueID();
 
 		// Initialize current match data
@@ -353,6 +355,8 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( b
 			{
 				if( *cvarMMROutputter == true )
 				{
+					// Get unique id
+					uniqueID = gameWrapper->GetUniqueID();
 					mmrSessionOutput.OnEndGame( &*cvarManager, &*gameWrapper, playlistType, stats[convertedMatchType].mmr, uniqueID );
 				}
 				onSuccess( false, false );

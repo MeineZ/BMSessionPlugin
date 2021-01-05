@@ -21,7 +21,7 @@ namespace ssp
 
 		void OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam );
 
-		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &currentPlayerUniqueID );
+		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper );
 
 	private:
 		std::map<ssp::playlist::Type, std::vector<float>> allMMR;
@@ -31,7 +31,7 @@ namespace ssp
 		void RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess );
 
 		inline int GetPlaylistGameSize( ssp::playlist::Type playlist);
-		inline std::wstring GetPlaylistFileName( ssp::playlist::Type playlist );
+		inline std::string GetPlaylistFileName( ssp::playlist::Type playlist );
 	};
 
 	inline int MMRSessionOutput::GetPlaylistGameSize( ssp::playlist::Type playlist )
@@ -52,24 +52,24 @@ namespace ssp
 				return -1;
 		}
 	}
-	inline std::wstring MMRSessionOutput::GetPlaylistFileName( ssp::playlist::Type playlist )
+	inline std::string MMRSessionOutput::GetPlaylistFileName( ssp::playlist::Type playlist )
 	{
 		switch( playlist )
 		{
 		#ifdef SSP_SETTINGS_DEBUG_MMR_OUTPUT
 			case ssp::playlist::Type::PLAYLIST_DUEL:
 		#endif
-				return L"CasualSolo";
+				return "CasualSolo";
 			case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
-				return L"Solo";
+				return "Solo";
 			case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
-				return L"Doubles";
+				return "Doubles";
 			case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
-				return L"Standard";
+				return "Standard";
 			case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD:
-				return L"SoloStandard";
+				return "SoloStandard";
 			default:
-				return L"Unknown";
+				return "Unknown";
 		}
 	}
 }
