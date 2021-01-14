@@ -21,14 +21,15 @@ namespace ssp
 
 		void OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam );
 
-		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper );
+		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper, bool inNewGame );
 
+		std::shared_ptr<bool> outputOtherGain; // Setting if we should output the other game members gain as well
 	private:
-		std::map<ssp::playlist::Type, std::vector<float>> allMMR;
+		std::map<ssp::playlist::Type, std::vector<std::pair<unsigned long long, float>>> allMMR;
 		bool didDetermine;
 		bool stopMMRfetch;
 
-		void RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void( float )> onSuccess );
+		void RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void(unsigned long long, float)> onSuccess );
 
 		inline int GetPlaylistGameSize( ssp::playlist::Type playlist);
 		inline std::string GetPlaylistFileName( ssp::playlist::Type playlist );

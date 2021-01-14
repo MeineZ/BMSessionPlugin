@@ -24,5 +24,8 @@ Session Stats plugin
 9|Checking this checkbox will output your mmr per playlist to <BakkesModFolder>/data/SessionPlugin
 9|Note that this just adds your MMR data to the file, so playing on multiple Steam accounts saves all data to the same file.
 1|Output MMR to csv file|cl_session_plugin_output_mmr
+10|cl_session_plugin_output_mmr
+1|Include all game members MMR gain (WARNING: this may not always do it's job; e.g. when you leave a match early) |cl_session_plugin_output_mmr_include_other
+11|
 8|
 0|Reset stats|cl_session_plugin_reset

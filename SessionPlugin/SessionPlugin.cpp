@@ -26,6 +26,7 @@
 #define CVAR_NAME_COLOR_NEGATIVE "cl_session_plugin_negative_color"
 #define CVAR_NAME_RESET "cl_session_plugin_reset"
 #define CVAR_NAME_OUTPUT_MMR "cl_session_plugin_output_mmr"
+#define CVAR_NAME_OUTPUT_MMR_OPPONENT "cl_session_plugin_output_mmr_include_other"
 #define CVAR_NAME_RESET_COLORS "cl_session_plugin_reset_colors"
 
 #define HOOK_COUNTDOWN_BEGINSTATE "Function GameEvent_TA.Countdown.BeginState"
@@ -77,6 +78,7 @@ void ssp::SessionPlugin::onLoad()
 
 	// MMR ourputter CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( cvarMMROutputter );
+	cvarManager->registerCvar(CVAR_NAME_OUTPUT_MMR_OPPONENT, "0", "Wheter the MMR gain of all other game members should be included in the output", false, true, 0, true, 1, true).bindTo(mmrSessionOutput.outputOtherGain);
 
 	// CVar Hooks
 	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<std::string> params ) {
@@ -139,14 +141,14 @@ void ssp::SessionPlugin::InMainMenu( std::string eventName )
 		if( uniqueID.GetUID() > 0 )
 		{
 			// Update MMR stats
-			UpdateCurrentMmr( 3, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
+			UpdateCurrentMmr( 3, false, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ) );
 		}
 	}
 }
 
 void ssp::SessionPlugin::StartGame( std::string eventName )
 {
-	DetermineMatchResult( CheckValidGame(), true );
+	DetermineMatchResult( CheckValidGame(), true, true );
 
 	// If the match has been determined and it's a valid (trackable) game
 	if( !currentMatch.IsActive() )
@@ -226,7 +228,7 @@ void ssp::SessionPlugin::EndGame( std::string eventName )
 		}
 
 		// Update MMR stats and determine win/loss
-		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
+		UpdateCurrentMmr( 5, false,  std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ) );
 
 	} // If currentgame is active
 }
@@ -245,7 +247,7 @@ void ssp::SessionPlugin::DestroyedGame( std::string eventName )
 		currentMatch.MatchEndReset();
 
 		// Update MMR stats
-		UpdateCurrentMmr( 5, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2 ) );
+		UpdateCurrentMmr( 5, false, std::bind( &SessionPlugin::DetermineMatchResult, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ) );
 	}
 }
 
@@ -326,7 +328,7 @@ bool ssp::SessionPlugin::CheckValidGame()
 	return false;
 }
 
-void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( bool, bool )> onSuccess )
+void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, bool inNewGame, std::function<void( bool, bool, bool )> onSuccess )
 {
 	ssp::playlist::Type playlistType = currentMatch.GetMatchType();
 	// Only update MMR if we know what playlist type to update
@@ -344,8 +346,8 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( b
 			{
 				if( !stats[convertedMatchType].mmr.RequestMmrUpdate( &*gameWrapper, uniqueID, &playlistType, true ) )
 				{
-					gameWrapper->SetTimeout( [this, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
-						this->UpdateCurrentMmr( retryCount - 1, onSuccess );
+					gameWrapper->SetTimeout( [this, retryCount, inNewGame, onSuccess] ( GameWrapper *gameWrapper ) {
+						this->UpdateCurrentMmr( retryCount - 1, inNewGame, onSuccess );
 					}, 1.f );
 					return;
 				}
@@ -357,22 +359,22 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, std::function<void( b
 				{
 					// Get unique id
 					uniqueID = gameWrapper->GetUniqueID();
-					mmrSessionOutput.OnEndGame( &*cvarManager, &*gameWrapper, playlistType, stats[convertedMatchType].mmr, uniqueID );
+					mmrSessionOutput.OnEndGame( &*cvarManager, &*gameWrapper, playlistType, stats[convertedMatchType].mmr, uniqueID, inNewGame );
 				}
-				onSuccess( false, false );
+				onSuccess( false, false, inNewGame );
 			}
 		}
 	}
 }
 
-void ssp::SessionPlugin::DetermineMatchResult( bool allowForce, bool updateMmr )
+void ssp::SessionPlugin::DetermineMatchResult( bool allowForce, bool updateMmr, bool inNewGame )
 {
 	// If the match result still has to be determined
 	if( currentMatch.CanBeDetermined() )
 	{
 		if( updateMmr )
 		{
-			UpdateCurrentMmr( 0 );
+			UpdateCurrentMmr( 0, inNewGame );
 		}
 
 		// Determine match result based on mmr of the last known playlist

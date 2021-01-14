@@ -59,10 +59,10 @@ namespace ssp // SessionPlugin
 		bool CheckValidGame();
 
 		// Updates the current Mmr of the player
-		void UpdateCurrentMmr( int retryCount, std::function<void( bool, bool )> onSuccess = nullptr );
+		void UpdateCurrentMmr( int retryCount, bool inNewGame, std::function<void( bool, bool, bool )> onSuccess = nullptr );
 
 		// Try to determine the match result (if possible and allowed)
-		void DetermineMatchResult( bool allowForce, bool updateMmr = true );
+		void DetermineMatchResult( bool allowForce, bool updateMmr = true, bool inNewGame = false );
 	};
 }
 
