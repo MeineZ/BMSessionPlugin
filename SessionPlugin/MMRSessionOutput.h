@@ -10,68 +10,41 @@
 #include <Playlist.h>
 #include <MMR.h>
 
+#define MMR_ENTRY std::pair<UniqueIDWrapper, ssp::MMR>
+
 namespace ssp
 {  // SessionPlugin
 
+	class SessionPlugin;
+
 	class MMRSessionOutput
-	{ 
+	{
 	public:
 		MMRSessionOutput();
 		~MMRSessionOutput();
 
-		void OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam );
+		void Initialize( SessionPlugin *plugin );
 
-		void OnEndGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR &currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper, bool inNewGame );
+		std::shared_ptr<bool> cvarMMROutputter; // Setting if we should output mmr	
+		std::shared_ptr<bool> outputOtherGain; // Setting if we should output the other game members gain as well	
 
-		std::shared_ptr<bool> outputOtherGain; // Setting if we should output the other game members gain as well
 	private:
-		std::map<ssp::playlist::Type, std::vector<std::pair<unsigned long long, float>>> allMMR;
-		bool didDetermine;
-		bool stopMMRfetch;
+		void WaitForAllPlayers_BeginState( std::string eventName );
+		void CountDown_BeginState( std::string eventName );
+		void OnlineGame_OnMainMenu( std::string eventName );
+		void GameEventSoccar_EventMatchWinnerSet( std::string eventName );
+		void MMRWrapper_Notifier( UniqueIDWrapper uniqueID );
+		void TestEvent( std::string eventName );
 
-		void RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void(unsigned long long, float)> onSuccess );
+		bool HaveAllMMRBeenSetCorrectly();
+		void WriteToFile( bool hardForce = false, bool forceIfNotAllCorrect = false );
+		void Reset();
 
-		inline int GetPlaylistGameSize( ssp::playlist::Type playlist);
-		inline std::string GetPlaylistFileName( ssp::playlist::Type playlist );
+		SessionPlugin *plugin;
+		std::unique_ptr<MMRNotifierToken> MMRNotifierToken;
+		std::vector<MMR_ENTRY> mmrPlayers;
+		UniqueIDWrapper currentPlayerId;
+		ssp::playlist::Type currentPlaylist;
 	};
-
-	inline int MMRSessionOutput::GetPlaylistGameSize( ssp::playlist::Type playlist )
-	{
-		switch( playlist )
-		{
-		#ifdef SSP_SETTINGS_DEBUG_MMR_OUTPUT
-			case ssp::playlist::Type::PLAYLIST_DUEL:
-		#endif
-			case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
-				return 2;
-			case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
-				return 4;
-			case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
-			case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD:
-				return 6;
-			default:
-				return -1;
-		}
-	}
-	inline std::string MMRSessionOutput::GetPlaylistFileName( ssp::playlist::Type playlist )
-	{
-		switch( playlist )
-		{
-		#ifdef SSP_SETTINGS_DEBUG_MMR_OUTPUT
-			case ssp::playlist::Type::PLAYLIST_DUEL:
-		#endif
-				return "CasualSolo";
-			case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
-				return "Solo";
-			case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
-				return "Doubles";
-			case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
-				return "Standard";
-			case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD:
-				return "SoloStandard";
-			default:
-				return "Unknown";
-		}
-	}
 }
 

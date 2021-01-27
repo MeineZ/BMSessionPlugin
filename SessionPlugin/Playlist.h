@@ -63,6 +63,10 @@ namespace ssp // Session plugin
 
 		// Returns true if the playlist Type is known (in the Type enumeration)
 		inline bool IsKnown( Type type );
+
+
+		inline int GetPlaylistGameSize( ssp::playlist::Type playlist );
+		inline std::string GetPlaylistName( ssp::playlist::Type playlist );
 	}
 }
 
@@ -74,4 +78,55 @@ inline bool ssp::playlist::IsKnown( ssp::playlist::Type type )
 inline ssp::playlist::Type ssp::playlist::ConvertToCasualType( ssp::playlist::Type type )
 {
 	return ssp::playlist::IsCasualPlaylist( type ) ? ssp::playlist::Type::PLAYLIST_CASUAL : type;
+}
+
+inline int ssp::playlist::GetPlaylistGameSize( ssp::playlist::Type playlist )
+{
+	switch( playlist )
+	{
+		case ssp::playlist::Type::PLAYLIST_DUEL:
+		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
+			return 2;
+		case ssp::playlist::Type::PLAYLIST_DOUBLES:
+		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
+		case ssp::playlist::Type::PLAYLIST_RANKEDHOOPS:
+			return 4;
+		case ssp::playlist::Type::PLAYLIST_STANDARD:
+		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
+		case ssp::playlist::Type::PLAYLIST_RANKEDDROPSHOT:
+		case ssp::playlist::Type::PLAYLIST_RANKEDSNOWDAY:
+		case ssp::playlist::Type::PLAYLIST_RANKEDRUMBLE:
+			return 6;
+		case Type::PLAYLIST_CHAOS:
+			return 8;
+		default:
+			return -1;
+	}
+}
+inline std::string ssp::playlist::GetPlaylistName( ssp::playlist::Type playlist )
+{
+	switch( playlist )
+	{
+		case ssp::playlist::Type::PLAYLIST_DUEL:
+		case ssp::playlist::Type::PLAYLIST_DOUBLES:
+		case ssp::playlist::Type::PLAYLIST_STANDARD:
+		case ssp::playlist::Type::PLAYLIST_CHAOS:
+			return "Casual";
+		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL:
+			return "Solo";
+		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES:
+			return "Doubles";
+		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD:
+			return "Standard";
+		case ssp::playlist::Type::PLAYLIST_RANKEDDROPSHOT:
+			return "Dropshot";
+		case ssp::playlist::Type::PLAYLIST_RANKEDHOOPS:
+			return "Hoops";
+		case ssp::playlist::Type::PLAYLIST_RANKEDSNOWDAY:
+			return "Snowday";
+		case ssp::playlist::Type::PLAYLIST_RANKEDRUMBLE:
+			return "Rumble";
+		default:
+			return "Unknown";
+	}
 }

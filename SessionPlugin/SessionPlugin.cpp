@@ -37,7 +37,7 @@
 #define HOOK_HANDLE_PENALTY_CHANGED "Function TAGame.GFxHUD_TA.HandlePenaltyChanged"
 #define HOOK_ON_MAIN_MENU "Function TAGame.OnlineGame_TA.OnMainMenuOpened"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.9", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.10", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	mmrSessionOutput(),
@@ -48,8 +48,7 @@ ssp::SessionPlugin::SessionPlugin():
 	isInMatch( false ),
 	displayStats( std::make_shared<bool>( true ) ),
 	displayStatsInMatch( std::make_shared<bool>( true ) ),
-	displayStatsTest( std::make_shared<bool>( false ) ),
-	cvarMMROutputter( std::make_shared<bool>( false ) )
+	displayStatsTest( std::make_shared<bool>( false ) )
 { }
 
 void ssp::SessionPlugin::onLoad()
@@ -77,7 +76,7 @@ void ssp::SessionPlugin::onLoad()
 	cvarManager->registerCvar( CVAR_NAME_COLOR_NEGATIVE, "(232, 95, 95, 127)", "Negative color", false, false, 0, false, 255, true ).bindTo( renderer.colorNegative );
 
 	// MMR ourputter CVar initialization
-	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( cvarMMROutputter );
+	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( mmrSessionOutput.cvarMMROutputter );
 	cvarManager->registerCvar(CVAR_NAME_OUTPUT_MMR_OPPONENT, "0", "Wheter the MMR gain of all other game members should be included in the output", false, true, 0, true, 1, true).bindTo(mmrSessionOutput.outputOtherGain);
 
 	// CVar Hooks
@@ -114,6 +113,7 @@ void ssp::SessionPlugin::onLoad()
 
 	// Set default properties
 	isInMatch = false;
+	mmrSessionOutput.Initialize( this );
 }
 
 void ssp::SessionPlugin::onUnload()
@@ -178,8 +178,6 @@ void ssp::SessionPlugin::StartGame( std::string eventName )
 
 			stats[matchType] = ssp::playlist::Stats( mmr );
 		}
-
-		mmrSessionOutput.OnNewGame( &*cvarManager, &*gameWrapper, currentMatch.GetMatchType(), stats[matchType].mmr, uniqueID, currentMatch.GetCurrentTeam() );
 
 		// Set last found diff as this also tells us that a new game was started
 		stats[matchType].mmr.lastDiff = 0.f;
@@ -355,12 +353,6 @@ void ssp::SessionPlugin::UpdateCurrentMmr( int retryCount, bool inNewGame, std::
 
 			if( onSuccess )
 			{
-				if( *cvarMMROutputter == true )
-				{
-					// Get unique id
-					uniqueID = gameWrapper->GetUniqueID();
-					mmrSessionOutput.OnEndGame( &*cvarManager, &*gameWrapper, playlistType, stats[convertedMatchType].mmr, uniqueID, inNewGame );
-				}
 				onSuccess( false, false, inNewGame );
 			}
 		}

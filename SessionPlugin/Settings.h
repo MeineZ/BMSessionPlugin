@@ -6,8 +6,22 @@
 
 #endif
 
-#ifndef SSP_SETTINGS_DEBUG_MMR_OUTPUT
 
-//#define SSP_SETTINGS_DEBUG_MMR_OUTPUT
+
+#ifndef SSP_DEBUG_LOG_ENABLED
+
+//#define SSP_DEBUG_LOG_ENABLED
+
+#endif
+
+
+
+#ifdef SSP_DEBUG_LOG_ENABLED
+
+#define SSP_LOG(s) plugin->cvarManager->log(s)
+
+#else
+
+#define SSP_LOG(s)
 
 #endif

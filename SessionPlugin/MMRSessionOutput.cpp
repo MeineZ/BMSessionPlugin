@@ -4,176 +4,381 @@
 
 #include <bakkesmod/wrappers/wrapperstructs.h>
 
-#define MMR_OUTPUT_CURRENT_PLAYER 0
+#include <SessionPlugin.h>
 
-#define MMR_OUTPUT_FILE_PATH "SessionPlugin\\MMR_"
+#define MMR_OUTPUT_CURRENT_PLAYER 0
+#define MMR_INVALID_VALUE -1.0f
+#define ID_INVALID_VALUE 0
+#define TEAM_INVALID_VALUE 255
+
+#define MMR_OUTPUT_FILE_FOLDER "SessionPlugin"
+#define MMR_OUTPUT_FILE_NAME "MMR_"
 #define MMR_OUTPUT_FILE_EXTENSION ".csv"
 
+#define HOOK_ONLINEGAMEJOINGAME_WAITFORALLPLAYERS_BEGINSTATE "Function OnlineGameJoinGame_X.WaitForAllPlayers.BeginState"
+#define HOOK_ON_MAIN_MENU "Function TAGame.GFxData_MainMenu_TA.MainMenuAdded"
+#define HOOK_COUNTDOWN_BEGINSTATE "Function GameEvent_TA.Countdown.BeginState"
+#define HOOK_GAMEEVENTSOCCAR_EVENTMATCHWINNERSET "Function TAGame.GameEvent_Soccar_TA.EventMatchWinnerSet"
+
+
 ssp::MMRSessionOutput::MMRSessionOutput() :
-	didDetermine(false),
-	stopMMRfetch(false),
-	outputOtherGain(std::make_shared<bool>(false))
-{
-#ifdef SSP_SETTINGS_DEBUG_MMR_OUTPUT
-	allMMR[ssp::playlist::Type::PLAYLIST_DUEL] = std::vector<float>(2);
-#endif
-	allMMR[ssp::playlist::Type::PLAYLIST_RANKEDDUEL] = std::vector<std::pair<unsigned long long, float>>( 2 );
-	allMMR[ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES] = std::vector<std::pair<unsigned long long, float>>( 4 );
-	allMMR[ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD] = std::vector<std::pair<unsigned long long, float>>( 6 );
-	allMMR[ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD] = std::vector<std::pair<unsigned long long, float>>( 6 );
-}
+	cvarMMROutputter(std::make_shared<bool>(false)),
+	outputOtherGain(std::make_shared<bool>(false)),
+	plugin(nullptr),
+	MMRNotifierToken(),
+	currentPlaylist(ssp::playlist::Type::PLAYLIST_UNKNOWN),
+	currentPlayerId(),
+	mmrPlayers(std::vector<MMR_ENTRY>())
+{ }
 
 ssp::MMRSessionOutput::~MMRSessionOutput()
+{ }
+
+void ssp::MMRSessionOutput::Initialize(SessionPlugin* newPlugin)
 {
-	allMMR.clear();
+	if (newPlugin == nullptr)
+		return;
+
+	plugin = newPlugin;
+
+	SSP_LOG("[INITIALIZE FLAG] 1.");
+
+	// Hook to Countdown Begin State
+	plugin->gameWrapper->HookEventPost(HOOK_COUNTDOWN_BEGINSTATE, std::bind(&MMRSessionOutput::CountDown_BeginState, this, std::placeholders::_1));
+	// Hook to Wait for all players begin state
+	plugin->gameWrapper->HookEventPost( HOOK_ONLINEGAMEJOINGAME_WAITFORALLPLAYERS_BEGINSTATE, std::bind(&MMRSessionOutput::WaitForAllPlayers_BeginState, this, std::placeholders::_1));
+	// Hook to Online Game On Main Menu
+	plugin->gameWrapper->HookEventPost(HOOK_ON_MAIN_MENU, std::bind(&MMRSessionOutput::OnlineGame_OnMainMenu, this, std::placeholders::_1));
+	// Hook to Game Event Soccar Event Match Winner Set
+	plugin->gameWrapper->HookEventPost(HOOK_GAMEEVENTSOCCAR_EVENTMATCHWINNERSET, std::bind(&MMRSessionOutput::GameEventSoccar_EventMatchWinnerSet, this, std::placeholders::_1));
+	SSP_LOG("[INITIALIZE FLAG] 2.");
+
+	// Create folder if it doesn't exist yet
+	CreateDirectory( ( plugin->gameWrapper->GetDataFolder() / MMR_OUTPUT_FILE_FOLDER ).string().c_str(), NULL );
 }
 
-void ssp::MMRSessionOutput::OnNewGame( CVarManagerWrapper *cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper & currentPlayerUniqueID, int currentTeam)
-{ 
-	stopMMRfetch = false;
-	int gameSize = GetPlaylistGameSize( playlist );
-	if( gameSize > 0 )
+void ssp::MMRSessionOutput::Reset()
+{
+	SSP_LOG("[RESET FLAG] 1.");
+	MMRNotifierToken.release();
+	currentPlaylist = ssp::playlist::Type::PLAYLIST_UNKNOWN;
+	mmrPlayers.clear();
+	SSP_LOG("[RESET FLAG] 2.");
+}
+
+void ssp::MMRSessionOutput::WaitForAllPlayers_BeginState(std::string eventName)
+{
+	SSP_LOG("[WAITFOR ALL PLAYERS FLAG] 1.");
+	WriteToFile(true, true);
+	SSP_LOG("[WAITFOR ALL PLAYERS FLAG] 2.");
+}
+
+void ssp::MMRSessionOutput::CountDown_BeginState(std::string eventName)
+{
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 1.");
+	if (plugin == nullptr)
+		return;
+
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 2. ");
+
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 3. " + std::to_string(currentPlayerId.GetUID()));
+	if (currentPlayerId.GetUID() == ID_INVALID_VALUE)
 	{
-		// The game may only be tracked if the game is an online game and the online game is online multiplayer
-		if( gameWrapper->IsInOnlineGame() && !gameWrapper->IsInReplay() && !gameWrapper->IsInFreeplay() )
+		currentPlayerId = plugin->gameWrapper->GetUniqueID();
+	}
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 4. " + std::to_string(currentPlayerId.GetUID()));
+
+	if (!plugin->CheckValidGame())
+		return;
+
+	// Get current playlist and find game size
+	MMRWrapper mmrWrapper = plugin->gameWrapper->GetMMRWrapper();
+	ssp::playlist::Type playlist = static_cast<ssp::playlist::Type>(mmrWrapper.GetCurrentPlaylist());
+	int gameSize = ssp::playlist::GetPlaylistGameSize(playlist);
+
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 5. " + std::to_string(static_cast<int>(playlist)) + " , " + std::to_string(static_cast<int>(gameSize)));
+	if (gameSize <= 0)
+		return;
+
+	// Find the team of the current player
+	unsigned char currentTeam = TEAM_INVALID_VALUE;
+	CarWrapper car = plugin->gameWrapper->GetLocalCar();
+	if (!car.IsNull())
+	{
+		currentTeam = car.GetTeamNum2();
+	}
+	else return;
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 6. " + std::to_string(currentTeam) + " == " + std::to_string(TEAM_INVALID_VALUE));
+	if (currentTeam == TEAM_INVALID_VALUE)
+		return;
+
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 7. " + std::to_string(mmrPlayers.size()) + " != " + std::to_string(gameSize));
+	// Calibrate mmrPlayers size to the game's size
+	if (mmrPlayers.size() != gameSize)
+		mmrPlayers.clear();
+
+	while (mmrPlayers.size() < gameSize)
+	{
+		SSP_LOG("[COUNT DOWN BEGIN FLAG] 7.1 " + std::to_string(mmrPlayers.size()) + " < " + std::to_string(gameSize));
+		MMR_ENTRY temp = std::make_pair(UniqueIDWrapper(), ssp::MMR(MMR_INVALID_VALUE));
+		SSP_LOG("[COUNT DOWN BEGIN FLAG] 7.2 " + std::to_string(temp.first.GetUID()) + " < " + std::to_string(temp.second.current));
+		mmrPlayers.push_back(temp);
+	}
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 8. " + std::to_string(mmrPlayers.size()));
+
+	// Set current playlist
+	currentPlaylist = playlist;
+
+	// Find all players and store their MMR if possible
+	int memberCounter[2] = { 1, gameSize / 2 };
+	ArrayWrapper<PriWrapper> gameMembers = plugin->gameWrapper->GetOnlineGame().GetPRIs();
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 9. " + std::to_string(gameMembers.Count()));
+
+	for (int m = 0; m < gameMembers.Count(); ++m)
+	{
+		// Get unique ID of PRI
+		PriWrapper gameMember = gameMembers.Get(m);
+		UniqueIDWrapper id = gameMember.GetUniqueIdWrapper();
+
+		SSP_LOG("[COUNT DOWN BEGIN FLAG] 11. " + std::to_string(id.GetUID()));
+
+		bool hasMMRDetermined = false;
+		for (int i = 0; i < mmrPlayers.size(); ++i)
 		{
-			ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
-			if( serverWrapper.IsOnlineMultiplayer() )
+			SSP_LOG("[COUNT DOWN BEGIN FLAG] 12. " + std::to_string(mmrPlayers[i].first.GetUID()) + " -> " + std::to_string(mmrPlayers[i].second.initial));
+			if (mmrPlayers[i].first.GetUID() == id.GetUID() && mmrPlayers[i].first.GetUID() != ID_INVALID_VALUE && mmrPlayers[i].second.initial != MMR_INVALID_VALUE)
 			{
-				int memberCounter[2] = { 1, gameSize / 2 };
-				ArrayWrapper<PriWrapper> gameMembers = serverWrapper.GetPRIs();
-				if( gameMembers.Count() == gameSize )
-				{
-					for( int i = 0; i < gameMembers.Count(); ++i )
-					{
-						PriWrapper gameMember = gameMembers.Get( i );
-						UniqueIDWrapper id = gameMember.GetUniqueIdWrapper();
-						if( id.GetUID() == currentPlayerUniqueID.GetUID() )
-						{
-							allMMR[playlist][MMR_OUTPUT_CURRENT_PLAYER] = std::make_pair(id.GetUID(), currentPlayerMMR.current);
-						}
-						else
-						{
-							// Get MMR from random player
-							RequestMMR( gameWrapper, id, playlist, 50, [this, cvarManager, gameSize, gameWrapper, playlist,  &memberCounter, &gameMember, currentTeam] ( unsigned long long id, float newMMR ) {
-								allMMR[playlist][memberCounter[gameMember.GetTeamNum() == currentTeam ? 0 : 1]++] = std::make_pair(id, newMMR);
-							});
-						}
-					}
-				}
-				else
-				{
-					allMMR[playlist][MMR_OUTPUT_CURRENT_PLAYER] = std::make_pair(0, -1.0f);
-				}
-			} // is in online game
-		} // Is in valid game
-	} // if gameSize > 0
+				hasMMRDetermined = true;
+				break;
+			}
+			SSP_LOG("[COUNT DOWN BEGIN FLAG] 13. " + std::to_string(hasMMRDetermined));
+		}
+		SSP_LOG("[COUNT DOWN BEGIN FLAG] 14. " + std::to_string(hasMMRDetermined));
+		if (hasMMRDetermined)
+			continue;
+
+		float mmr = mmrWrapper.GetPlayerMMR(id, static_cast<int>(currentPlaylist));
+
+		SSP_LOG("[COUNT DOWN BEGIN FLAG] 15. " + std::to_string(mmr));
+		// Set current player mmr if we're talking to the current player
+		if (id.GetUID() == currentPlayerId.GetUID())
+		{
+			mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].first = id;
+			mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.Reset(mmr);
+			SSP_LOG("[COUNT DOWN BEGIN FLAG] 16. " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial));
+		}
+		else
+		{
+			// Get MMR from random player
+			int index = memberCounter[gameMember.GetTeamNum() == currentTeam ? 0 : 1]++;
+			SSP_LOG("[COUNT DOWN BEGIN FLAG] 17. " + std::to_string(gameMember.GetTeamNum()));
+			mmrPlayers[index].first = id;
+			mmrPlayers[index].second.Reset(mmr);
+			SSP_LOG("[COUNT DOWN BEGIN FLAG] 18. " + std::to_string(index) + " -- " + std::to_string(mmrPlayers[index].second.initial));
+		}
+	}
+	SSP_LOG("[COUNT DOWN BEGIN FLAG] 19.");
 }
 
-void ssp::MMRSessionOutput::OnEndGame(CVarManagerWrapper * cvarManager, GameWrapper * gameWrapper, ssp::playlist::Type playlist, ssp::MMR & currentPlayerMMR, UniqueIDWrapper &uniqueIDWrapper, bool inNewGame )
+void ssp::MMRSessionOutput::OnlineGame_OnMainMenu(std::string eventName)
 {
-	stopMMRfetch = true;
+	SSP_LOG("[ONLINE GAME ON MAIN MENU FLAG] 1.");
+	WriteToFile(false, true);
+	SSP_LOG("[ONLINE GAME ON MAIN MENU FLAG] 2.");
+}
 
-	int gameSize = GetPlaylistGameSize( playlist );
-	if( gameSize > 0 )
+void ssp::MMRSessionOutput::GameEventSoccar_EventMatchWinnerSet(std::string eventName)
+{
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 1.");
+	if (plugin == nullptr)
+		return;
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 2.");
+
+	// Try to fetch all mmr immediately
+	ArrayWrapper<PriWrapper> gameMembers = plugin->gameWrapper->GetOnlineGame().GetPRIs();
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 3.");
+
+	bool foundAllMmr = true;
+	for (int m = 0; m < gameMembers.Count(); ++m)
 	{
-		if( allMMR[playlist][MMR_OUTPUT_CURRENT_PLAYER].second < 0.0f )
+		// Get unique ID of PRI
+		PriWrapper gameMember = gameMembers.Get(m);
+		UniqueIDWrapper id = gameMember.GetUniqueIdWrapper();
+
+		for (int i = 0; i < mmrPlayers.size(); ++i)
 		{
-			return;
+			SSP_LOG("[EVENT MATCH WINNER SET FLAG] 4. " + std::to_string(id.GetUID()) + " , " + std::to_string(mmrPlayers[i].first.GetUID()) + " , " + std::to_string(mmrPlayers[i].second.current));
+			if (mmrPlayers[i].first.GetUID() == id.GetUID() && mmrPlayers[i].first.GetUID() != ID_INVALID_VALUE && (mmrPlayers[i].second.current == MMR_INVALID_VALUE || mmrPlayers[i].second.initial == mmrPlayers[i].second.current))
+			{
+				if (!mmrPlayers[i].second.RequestMmrUpdate(&*plugin->gameWrapper, id, &currentPlaylist, false))
+				{
+					foundAllMmr = false;
+				}
+				SSP_LOG("[EVENT MATCH WINNER SET FLAG] 5. " + std::to_string(foundAllMmr) + " , " + std::to_string(mmrPlayers[i].second.current));
+				break;
+			}
 		}
 
-		std::vector<std::pair<unsigned long long, float>> otherMMR;
-		if ( !inNewGame && gameWrapper->IsInOnlineGame() && !gameWrapper->IsInReplay() && !gameWrapper->IsInFreeplay())
-		{
-			ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
-			if (serverWrapper.IsOnlineMultiplayer())
-			{
-				int memberCounter[2] = { 1, gameSize / 2 };
-				ArrayWrapper<PriWrapper> gameMembers = serverWrapper.GetPRIs();
-				otherMMR = std::vector<std::pair<unsigned long long, float>>(gameMembers.Count() - 1);
-				ssp::MMR mmr(0.0f);
-				for (int i = 0; i < gameMembers.Count(); ++i)
-				{
-					PriWrapper gameMember = gameMembers.Get(i);
-					UniqueIDWrapper id = gameMember.GetUniqueIdWrapper();
-					if (id.GetUID() != uniqueIDWrapper.GetUID())
-					{
-						if (mmr.RequestMmrUpdate(gameWrapper, uniqueIDWrapper, &playlist, true)) {
-							otherMMR.push_back(std::make_pair(id.GetUID(), mmr.current));
-						}
-					}
-				}
-			} // is in online game
-		} // Is in valid game
+		if (!foundAllMmr)
+			break;
+	}
 
-		std::ofstream outfile;
-		std::string fn = (gameWrapper->GetDataFolder() / ( 
-			MMR_OUTPUT_FILE_PATH + 
-			GetPlaylistFileName( playlist ) +
-			MMR_OUTPUT_FILE_EXTENSION 
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 6. " + std::to_string(foundAllMmr));
+	if (foundAllMmr)
+	{
+		WriteToFile(false, false);
+		return;
+	}
+
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 7.");
+
+	// Register to MMR notifier
+	MMRNotifierToken = plugin->gameWrapper->GetMMRWrapper().RegisterMMRNotifier(std::bind(&ssp::MMRSessionOutput::MMRWrapper_Notifier, this, std::placeholders::_1));
+	SSP_LOG("[EVENT MATCH WINNER SET FLAG] 8.");
+}
+
+void ssp::MMRSessionOutput::MMRWrapper_Notifier(UniqueIDWrapper uniqueID)
+{
+	SSP_LOG("[MMR NOTIFIER FLAG] 1. " + std::to_string(mmrPlayers.size()) + " -- " + std::to_string(uniqueID.GetUID()));
+	if (plugin == nullptr || mmrPlayers.size() <= 0)
+		return;
+
+	SSP_LOG("[MMR NOTIFIER FLAG] 2. " + std::to_string(uniqueID.GetUID()) + " == " + std::to_string(currentPlayerId.GetUID()));
+	// If we're talking to the current player
+	if (uniqueID.GetUID() == currentPlayerId.GetUID())
+	{
+		SSP_LOG("[MMR NOTIFIER FLAG] 3. " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial) + " == " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current));
+		if (mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial == mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current)
+		{
+			mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.RequestMmrUpdate(&*plugin->gameWrapper, uniqueID, &currentPlaylist, true);
+			SSP_LOG("[MMR NOTIFIER FLAG] 4. " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current));
+		}
+	}
+	else
+	{
+		SSP_LOG("[MMR NOTIFIER FLAG] 5.");
+		// Handle other players
+		float mmr = MMR_INVALID_VALUE;
+		for (int i = 0; i < mmrPlayers.size(); ++i)
+		{
+			SSP_LOG("[MMR NOTIFIER FLAG] 6. " + std::to_string(mmrPlayers[i].first.GetUID()) + " == " + std::to_string(uniqueID.GetUID()) + " || " + std::to_string(ID_INVALID_VALUE));
+			if (mmrPlayers[i].first.GetUID() == uniqueID.GetUID() && mmrPlayers[i].first.GetUID() != ID_INVALID_VALUE)
+			{
+				mmrPlayers[i].second.RequestMmrUpdate(&*plugin->gameWrapper, uniqueID, &currentPlaylist, true);
+				SSP_LOG("[MMR NOTIFIER FLAG] 7. " + std::to_string(mmrPlayers[i].second.current));
+				break;
+			}
+		}
+	}
+	SSP_LOG("[MMR NOTIFIER FLAG] 8.");
+
+	bool allSetCorrectly = HaveAllMMRBeenSetCorrectly();
+	SSP_LOG("[MMR NOTIFIER FLAG] 9." + std::to_string(allSetCorrectly));
+
+	if (allSetCorrectly) {
+		SSP_LOG("[MMR NOTIFIER FLAG] 10.");
+		WriteToFile(false, true);
+	}
+	SSP_LOG("[MMR NOTIFIER FLAG] 11.");
+}
+
+void ssp::MMRSessionOutput::TestEvent(std::string eventName)
+{
+	SSP_LOG(" [TEST EVENT FLAG] " + eventName);
+}
+
+void ssp::MMRSessionOutput::WriteToFile(bool hardForce, bool forceIfNotAllCorrect)
+{
+	SSP_LOG("[WRITE TO FILE FLAG] 1. " + std::to_string(mmrPlayers.size()) + " -- " + std::to_string( hardForce ));
+	if (plugin == nullptr || mmrPlayers.size() <= 0)
+		return;
+	SSP_LOG("[WRITE TO FILE FLAG] 2. " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial) + " == " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current));
+
+	// Get current player mmr if the end/new mmr wasn't set
+	if (mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial == mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current)
+	{
+		SSP_LOG("[WRITE TO FILE FLAG] 3. ");
+		// Stop executing this method if the mmr didn't update and we're not forced to write
+		if (!mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.RequestMmrUpdate(&*plugin->gameWrapper, currentPlayerId, &currentPlaylist, true) && !hardForce )
+		{
+			SSP_LOG("[WRITE TO FILE FLAG] 4." + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial) + " == " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current));
+			return;
+		}
+	}
+	SSP_LOG("[WRITE TO FILE FLAG] 5." + std::to_string( mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial ) + " == " + std::to_string( mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current ) );
+
+	// Return if not all mmr has been set (yet) and there's no force write requested
+	if (!forceIfNotAllCorrect ) {
+		if (!HaveAllMMRBeenSetCorrectly()) {
+			return;
+		}
+	}
+
+	std::ofstream outfile;
+	std::string fn = (plugin->gameWrapper->GetDataFolder() / MMR_OUTPUT_FILE_FOLDER / (
+		MMR_OUTPUT_FILE_NAME +
+		ssp::playlist::GetPlaylistName(currentPlaylist) +
+		MMR_OUTPUT_FILE_EXTENSION
 		)).generic_string();
 
-		outfile.open(fn, std::ios_base::app ); // append
-		if( !outfile.is_open() )
-			return;
+	SSP_LOG("[WRITE TO FILE FLAG] 6. " + fn);
 
-		for( int i = 0; i < gameSize; ++i )
-		{
-			outfile << allMMR[playlist][i].second << ",";
-		}
-		outfile << currentPlayerMMR.lastDiffDisplay << ",";
+	outfile.open(fn, std::ios_base::app); // append
+	if (!outfile.is_open())
+		return;
 
-		// Save other MMR gain if allowed
-		if (*outputOtherGain) {
-			bool foundSamePlayer = false;
-			for (int i = 0; i < allMMR[playlist].size(); ++i) {
-				if (allMMR[playlist][i].first == uniqueIDWrapper.GetUID())
-					continue;
+	SSP_LOG("[WRITE TO FILE FLAG] 7. ");
 
-				for (int j = 0; j < otherMMR.size(); ++j) {
-					if (allMMR[playlist][i].first == otherMMR[j].first) {
-						outfile << (allMMR[playlist][i].second - otherMMR[j].second) << ",";
-						otherMMR.erase( otherMMR.begin() + j);
-						foundSamePlayer = true;
-						break;
-					}
-				}
-
-				if( !foundSamePlayer )
-				{
-					outfile << ",";
-				}
-				foundSamePlayer = false;
-			}
-
-		}
-		outfile << "\n";
-
-		outfile.close();
+	// Output starting mmrs
+	for (int i = 0; i < mmrPlayers.size(); ++i)
+	{
+		SSP_LOG("[WRITE TO FILE FLAG] 8. " + std::to_string(mmrPlayers[i].second.initial));
+		outfile << mmrPlayers[i].second.initial << ",";
 	}
+
+	SSP_LOG("[WRITE TO FILE FLAG] 9. ");
+	// Output mmr gain(s)
+	for (int i = 0; i < mmrPlayers.size(); ++i)
+	{
+		SSP_LOG("[WRITE TO FILE FLAG] 10. " + std::to_string(*outputOtherGain) + " -- " + std::to_string(mmrPlayers[i].first.GetUID()) + " -- " + std::to_string(currentPlayerId.GetUID()) + " -- " + std::to_string(mmrPlayers[i].second.lastDiff));
+		// Output all gains if allowed
+		if (*outputOtherGain)
+		{
+			SSP_LOG("[WRITE TO FILE FLAG] 11. ");
+			outfile << mmrPlayers[i].second.lastDiff << ",";
+		}
+		// Else only output current player mmr
+		else if (mmrPlayers[i].first.GetUID() == currentPlayerId.GetUID())
+		{
+			SSP_LOG("[WRITE TO FILE FLAG] 12. ");
+			outfile << mmrPlayers[i].second.lastDiff << ",";
+			break;
+		}
+	}
+	SSP_LOG("[WRITE TO FILE FLAG] 13. ");
+
+	outfile << std::endl;
+
+	SSP_LOG("[WRITE TO FILE FLAG] 14. ");
+	// Close file and reset to collect new data
+	outfile.close();
+	Reset();
+	SSP_LOG("[WRITE TO FILE FLAG] 15. ");
+
 }
 
-void ssp::MMRSessionOutput::RequestMMR( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, int retryCount, std::function<void( unsigned long long, float )> onSuccess )
+bool ssp::MMRSessionOutput::HaveAllMMRBeenSetCorrectly()
 {
-	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-	ssp::MMR mmr( 0.0f );
-	if( !mmr.RequestMmrUpdate( gameWrapper, uniqueID, &matchType, false ) )
-	{
-		if( !mmr.RequestMmrUpdate( gameWrapper, uniqueID, &matchType, true ) )
-		{
-			allMMR[matchType][MMR_OUTPUT_CURRENT_PLAYER] = std::make_pair(0, -1.0f);
-			if( !stopMMRfetch )
-			{
-				gameWrapper->SetTimeout( [this, gameWrapper, uniqueID, matchType, retryCount, onSuccess] ( GameWrapper *gameWrapper ) {
-					this->RequestMMR( gameWrapper, const_cast<UniqueIDWrapper &>( uniqueID ), matchType, retryCount - 1, onSuccess );
-				}, 2.f );
-			}
-			return;
-		}
+	if (mmrPlayers.size() <= 0)
+		return false;
+
+	for (int i = 0; i < mmrPlayers.size(); ++i) {
+		if (mmrPlayers[i].first.GetUID() == ID_INVALID_VALUE ||
+			mmrPlayers[i].second.initial == MMR_INVALID_VALUE ||
+			mmrPlayers[i].second.current == MMR_INVALID_VALUE ||
+			mmrPlayers[i].second.initial == mmrPlayers[i].second.current)
+			return false;
 	}
 
-	if( onSuccess )
-	{
-		onSuccess(uniqueID.GetUID(), mmr.current);
-	}
+	return true;
 }

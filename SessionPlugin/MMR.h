@@ -33,6 +33,8 @@ namespace ssp // SessionPlugin
 
 		MMR( float initialMmr );
 
+		void Reset( float initialMmr = 0.0f);
+
 		bool RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type const * matchType, bool force = true);
 
 		virtual void Log( CVarManagerWrapper *cvarManager );

@@ -30,7 +30,6 @@ namespace ssp // SessionPlugin
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
 		std::shared_ptr<bool> displayStatsInMatch; // Setting if we should display stats during matches
 		std::shared_ptr<bool> displayStatsTest; // Setting if we should display stats test
-		std::shared_ptr<bool> cvarMMROutputter; // Setting if we should output mmr		
 
 	public:
 		SessionPlugin();
@@ -63,6 +62,15 @@ namespace ssp // SessionPlugin
 
 		// Try to determine the match result (if possible and allowed)
 		void DetermineMatchResult( bool allowForce, bool updateMmr = true, bool inNewGame = false );
+
+		// Returns the current match info
+		inline ssp::Match GetCurrentMatchInfo();
 	};
+}
+
+
+inline ssp::Match ssp::SessionPlugin::GetCurrentMatchInfo()
+{
+	return currentMatch;
 }
 

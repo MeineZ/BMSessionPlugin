@@ -6,14 +6,20 @@
 
 #include <Playlist.h>
 
-ssp::MMR::MMR( float initialMmr ) :
-	Loggable(),
-	initial(initialMmr),
-	current(initialMmr),
-	lastDiffDisplay(0.0f),
-	lastDiff(0.0f),
-	streakMmrGain(0.0f)
-{ }
+ssp::MMR::MMR( float initialMmr ):
+	Loggable()
+{
+	Reset( initialMmr );
+}
+
+void ssp::MMR::Reset(float initialMmr )
+{
+	initial = initialMmr;
+	current = initialMmr;
+	lastDiffDisplay = 0.0f;
+	lastDiff = 0.0f;
+	streakMmrGain = 0.0f;
+}
 
 bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type const *matchType, bool force )
 {
