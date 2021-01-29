@@ -9,6 +9,9 @@ class CVarManagerWrapper;
 
 namespace ssp // Session plugin
 {
+	class SessionPlugin;
+	class Match;
+
 	namespace playlist
 	{
 		// Contains all stats that a playlist session can have.
@@ -23,10 +26,15 @@ namespace ssp // Session plugin
 			Stats( );
 			Stats( float initialMmr );
 
+			void Update( SessionPlugin * plugin, ssp::Match *currentMatch, bool force = false );
+
 			// Sets data of the stats. Only use for testing purposes as this may not work as intended!
 			void SetTestData( );
 
 			virtual void Log( CVarManagerWrapper *cvarManager );
+
+		private:
+			void UpdateWinLossStreak( SessionPlugin *plugin, ssp::Match *currentMatch, bool byMMR );
 		};
 
 		// All supported types (types that are consider worth tracking).

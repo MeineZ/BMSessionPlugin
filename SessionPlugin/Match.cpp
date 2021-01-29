@@ -9,16 +9,55 @@
 
 ssp::Match::Match() :
 	type(ssp::playlist::Type::PLAYLIST_UNKNOWN),
+	currentState(ssp::match::State::IDLE),
 	goals(),
-	currentTeam(-1),
-	isActive(false),
-	canBeDetermined(false)
+	currentTeam(-1)
 { 
 	goals[0] = goals[1] = 0;
 }
 
-void ssp::Match::DetermineCurrentTeam( GameWrapper * gameWrapper )
-{ 
+void ssp::Match::Reset()
+{
+	currentState = match::State::IDLE;
+	currentTeam = TEAM_INVALID_VALUE;
+	goals[0] = goals[1] = 0;
+}
+
+void ssp::Match::OnMatchStart(GameWrapper* gameWrapper)
+{
+	// Current game is active
+	currentState = match::State::ONGOING;
+
+	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+	type = ssp::playlist::FromInt(mmrWrapper.GetCurrentPlaylist());
+
+	// Get car and team number
+	currentTeam = TEAM_INVALID_VALUE;
+	FindCurrentTeam(gameWrapper);
+
+	// Reset goals
+	SetCurrentGameGoals(gameWrapper);
+}
+
+void ssp::Match::OnGoalScored(GameWrapper* gameWrapper)
+{
+	SetCurrentGameGoals( gameWrapper );
+}
+
+void ssp::Match::OnMatchEnded(GameWrapper* gameWrapper)
+{
+	if(currentState == match::State::ONGOING)
+		currentState = match::State::ENDED;
+}
+
+void ssp::Match::FindCurrentTeam( GameWrapper * gameWrapper )
+{
+	if( !ssp::playlist::IsKnown( type ) || currentState != match::State::ONGOING )
+	{
+		currentTeam = TEAM_INVALID_VALUE;
+		return;
+	}
+
 	// Only determine the current team if it's unknown.
 	// We expect the current team to be -1, when a new game started.
 	if( currentTeam == -1 )
@@ -31,28 +70,14 @@ void ssp::Match::DetermineCurrentTeam( GameWrapper * gameWrapper )
 	}
 }
 
-void ssp::Match::MatchEndReset()
-{
-	// Soft reset data
-	isActive = false;
-	canBeDetermined = true;
-}
-
-void ssp::Match::FullReset()
-{
-	// Hard reset data
-	MatchEndReset();
-	type = ssp::playlist::Type::PLAYLIST_UNKNOWN;
-	canBeDetermined = false;
-}
-
 void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
 {
-	// We're assuming that we're in a valid game here! Guard this with with a valid game check!
-
-	// Something must have gone wrong if the team number wasn't found
-	// We just retry again (important to note is that the current team number is very important to figure out who won)
-	
+	if( !ssp::playlist::IsKnown( type ) || currentState != match::State::ONGOING )
+	{
+		// Shouldn't even get here
+		goals[0] = goals[1] = 0;
+		return;
+	}
 
 	// Get the current online game
 	ServerWrapper serverWrapper = gameWrapper->GetOnlineGame();
@@ -67,87 +92,8 @@ void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
 			goals[1] = teams.Get( 1 ).GetScore();
 		}
 	}
-}
-
-bool ssp::Match::SetWinOrLoss(SessionPlugin * plugin, ssp::playlist::Stats & stats, bool byMmr )
-{
-	if( canBeDetermined )
+	else
 	{
-		if( byMmr && stats.mmr.lastDiff != 0.0f )
-		{
-			ssp::match::Result result;
-			if( stats.mmr.lastDiff > 0.0f )
-			{
-				result = ssp::match::Result::WIN;
-			}
-			else
-			{
-				result = ssp::match::Result::LOSS;
-			}
-			SetWinLossAndStreak( result, stats );
-			stats.mmr.lastDiff = 0.0f;
-			canBeDetermined = false;
-			return true;
-		}
-		else if( !byMmr )
-		{
-			SetWinLossAndStreak( GetStanding(), stats );
-			stats.mmr.lastDiff = 0.0f;
-			canBeDetermined = false;
-			return true;
-		}
+		goals[0] = goals[1] = 0;
 	}
-	return false;
-}
-
-void ssp::Match::SetWinLossAndStreak( match::Result result, ssp::playlist::Stats &stats )
-{
-	if( canBeDetermined )
-	{
-		// First check if we can determine a win or loss with the mmr gain/loss
-		if( result == ssp::match::Result::WIN )
-		{
-			// You won! :D
-			stats.wins++;
-			if( stats.streak < 0 )
-			{
-				stats.streak = 1;
-				stats.mmr.streakMmrGain = stats.mmr.lastDiff;
-			}
-			else
-			{
-				stats.streak++;
-				stats.mmr.streakMmrGain += stats.mmr.lastDiff;
-			}
-		}
-		else if( result == ssp::match::Result::LOSS )
-		{
-			// You lost! D:
-			stats.losses++;
-			if( stats.streak > 0 )
-			{
-				stats.streak = -1;
-				stats.mmr.streakMmrGain = stats.mmr.lastDiff;
-			}
-			else
-			{
-				stats.streak--;
-				stats.mmr.streakMmrGain += stats.mmr.lastDiff;
-			}
-		}
-	}
-}
-
-void ssp::Match::OnMatchStart(GameWrapper * gameWrapper)
-{
-	// Current game is active
-	isActive = true;
-
-	// Get car and team number
-	currentTeam = -1;
-	DetermineCurrentTeam(gameWrapper);
-
-	// Reset goals
-	goals[0] = goals[1] = 0;
-	canBeDetermined = false;
 }

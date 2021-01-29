@@ -60,7 +60,7 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 37 } );
 	canvas->DrawString( "Last game:" );
 
-	float lastGameGain = stats.mmr.lastDiffDisplay;
+	float lastGameGain = stats.mmr.lastDiff;
 	SetColorByValue( canvas, lastGameGain );
 	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 37 } );
 

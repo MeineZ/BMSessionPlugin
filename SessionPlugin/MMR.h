@@ -26,7 +26,6 @@ namespace ssp // SessionPlugin
 		float initial;
 		float current;
 
-		float lastDiffDisplay;
 		float lastDiff;
 
 		float streakMmrGain;
@@ -35,7 +34,7 @@ namespace ssp // SessionPlugin
 
 		void Reset( float initialMmr = 0.0f);
 
-		bool RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type const * matchType, bool force = true);
+		bool RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, bool force = true);
 
 		virtual void Log( CVarManagerWrapper *cvarManager );
 
@@ -44,6 +43,9 @@ namespace ssp // SessionPlugin
 		inline void SetDiffSStream( std::stringstream &stringStream );
 		inline void SetCurrentSStream( std::stringstream &stringStream );
 		inline void SetLastGameSStream( std::stringstream &stringStream );
+
+	private:
+		void SetStreakMMRGain();
 	};
 }
 
@@ -59,7 +61,7 @@ inline void ssp::MMR::SetDiffSStream(std::stringstream &stringStream)
 
 inline void ssp::MMR::SetLastGameSStream( std::stringstream &stringStream )
 {
-	stringStream << ( lastDiffDisplay > 0 ? "+" : "" ) << std::setprecision( 2 ) << std::showpoint << std::fixed << lastDiffDisplay;
+	stringStream << ( lastDiff > 0 ? "+" : "" ) << std::setprecision( 2 ) << std::showpoint << std::fixed << lastDiff;
 }
 
 inline void ssp::MMR::SetCurrentSStream( std::stringstream &stringStream )

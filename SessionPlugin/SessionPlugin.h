@@ -20,12 +20,11 @@ namespace ssp // SessionPlugin
 	{
 	private:
 		ssp::MMRSessionOutput mmrSessionOutput; // Outputs stats (also from team members to csv)
-		std::map<int, ssp::playlist::Stats> stats; // All stats per playlist
-		ssp::Match currentMatch; // Contains info about the current match
 		ssp::Renderer renderer; // Renderer that can render different objects
-		UniqueIDWrapper uniqueID; // Unique ID info
-		bool isInMatch;
-		std::string playerName;
+		ssp::Match currentMatch; // Contains info about the current match
+		UniqueIDWrapper currentPlayerID; // Unique ID info
+		std::map<int, ssp::playlist::Stats> stats; // All stats per playlist
+		std::unique_ptr<MMRNotifierToken> mmrNotifierToken;
 
 		std::shared_ptr<bool> displayStats; // Setting if we should display stats
 		std::shared_ptr<bool> displayStatsInMatch; // Setting if we should display stats during matches
@@ -38,39 +37,30 @@ namespace ssp // SessionPlugin
 		virtual void onLoad();
 		virtual void onUnload();
 
-		// Events
-		void OnPlayerScored( std::string eventName );
-		void StartGame( std::string eventName );
-		void EndGame( std::string eventName );
-		void DestroyedGame( std::string eventName );
-		void InMainMenu( std::string eventName );
+		// Reset functions
+		void ResetStats();
+		void ResetColors();
 
 		// Render hook
 		void Render( CanvasWrapper canvas );
 
-		// Stats reset
-		void ResetStats();
-
-		// Colors reset
-		void ResetColors();
-
 		// Check if game is valid to track
 		bool CheckValidGame();
 
-		// Updates the current Mmr of the player
-		void UpdateCurrentMmr( int retryCount, bool inNewGame, std::function<void( bool, bool, bool )> onSuccess = nullptr );
+		// Events
+		void WaitForAllPlayers_BeginState( std::string eventName );
+		void CountDown_BeginState( std::string eventName );
+		void GameEvent_PlayerScored( std::string eventName );
+		void GameEvent_MatchWinnerSet( std::string eventName );
+		void MMRWrapper_Notifier( UniqueIDWrapper uniqueID );
 
-		// Try to determine the match result (if possible and allowed)
-		void DetermineMatchResult( bool allowForce, bool updateMmr = true, bool inNewGame = false );
-
-		// Returns the current match info
-		inline ssp::Match GetCurrentMatchInfo();
+		// Helpers
+		ssp::playlist::Stats *GetPlaylistStats( const ssp::playlist::Type playlistType );
+		inline UniqueIDWrapper &GetUniqueID();
 	};
 }
-
-
-inline ssp::Match ssp::SessionPlugin::GetCurrentMatchInfo()
+inline UniqueIDWrapper &ssp::SessionPlugin::GetUniqueID()
 {
-	return currentMatch;
+	return currentPlayerID;
 }
 

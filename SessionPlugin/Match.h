@@ -19,55 +19,51 @@ namespace ssp // SessionPlugin
 			TIE = 0,
 			WIN = 1
 		};
+
+		enum class State
+		{
+			IDLE = 0,
+			ONGOING = 1,
+			ENDED = 2
+		};
 	}
 
 	class Match
 	{
 	private:
 		ssp::playlist::Type type; // The match type
+		ssp::match::State currentState; // Current state of the match
 		int goals[2]; // Amount of goals scored for each team
 		int currentTeam; // The team that the player is in
-		bool isActive; // Whether the match is currently active or if it ended
-		bool canBeDetermined; // Whether the match has ended and the result can be determined
-
-		// Add a win or loss and updates the current streak based on the given result
-		void SetWinLossAndStreak( match::Result result, ssp::playlist::Stats &stats );
 
 	public:
 		// Construct Match
 		Match();
 
-		// Reset on match end
-		void MatchEndReset();
-		// Fully reset current game stats. Basically Match:::MatchEndReset() but with a playlist type reset.
-		void FullReset();
+		// Resets to default values
+		void Reset();
 
 		// Should be called on match start. Initializes the current match data
-		void OnMatchStart( GameWrapper *gameWrapper );
+		void OnMatchStart(GameWrapper* gameWrapper);
+		// Should be called when a team scored. Updates the current score
+		void OnGoalScored(GameWrapper* gameWrapper);
+		// Should be called when a match ended. Handles the end of a game, also handles when the player left the match before it actually ended.
+		void OnMatchEnded(GameWrapper* gameWrapper);
 
-		// Determine the team that the current player is in
-		// ASSUMES WE ARE IN A VALID GAME! GUARD THIS FUNCTION WITH AN SessionPlugin::CheckValidGame()
-		void DetermineCurrentTeam( GameWrapper *gameWrapper );
+		// Finds the current team of the player
+		void FindCurrentTeam( GameWrapper *gameWrapper );
 
-		// Receive and set the current match score 
-		// ASSUMES WE ARE IN A VALID GAME! GUARD THIS FUNCTION WITH AN SessionPlugin::CheckValidGame()
+		// Receive and set the current match score
 		void SetCurrentGameGoals( GameWrapper *gameWrapper );
-
-		// Detemine if the player lost or not based on the current known score.
-		// Also updates the session data, as we assume that the game is over.
-		bool SetWinOrLoss( SessionPlugin *plugin, ssp::playlist::Stats &stats, bool byMmr );
 
 		// Returns the current standing based on the currently known score.
 		inline match::Result GetStanding();
 
 		inline ssp::playlist::Type GetMatchType(); // Returns the current match type
-		inline bool IsActive(); // Returns if a match is being tracked/active
-		inline bool CanBeDetermined(); // Returns if a match its result can be determined
-		inline int GetCurrentTeam(); // Returns the current team the player is in
-		inline int GetTeamScore(int team); // Returns the score of the specified team
+		inline void SetMatchType(ssp::playlist::Type playlistType); // Sets the playlist type from a number
 
-		inline void SetMatchType(int playlistType); // Sets the playlist type from a number
-		inline void Deactivate( ); // Deactivates the current match and stops tracking
+		inline ssp::match::State GetMatchState(); // Returns the current match type
+		inline void SetMatchState(ssp::match::State state); // Sets the match state
 	};
 }
 
@@ -76,34 +72,19 @@ inline ssp::playlist::Type ssp::Match::GetMatchType()
 	return type;
 }
 
-inline bool ssp::Match::IsActive()
+inline void ssp::Match::SetMatchType(ssp::playlist::Type playlistType)
 {
-	return isActive;
+	type = playlistType;
 }
 
-inline bool ssp::Match::CanBeDetermined()
+inline ssp::match::State ssp::Match::GetMatchState()
 {
-	return canBeDetermined;
+	return currentState;
 }
 
-inline int ssp::Match::GetCurrentTeam()
-{
-	return currentTeam;
-}
-
-inline int ssp::Match::GetTeamScore( int team )
-{
-	return team >= 0 && team < 2 ? goals[team] : 0;
-}
-
-inline void ssp::Match::SetMatchType( int playlistType )
+inline void ssp::Match::SetMatchState( ssp::match::State state )
 { 
-	type = ssp::playlist::FromInt( playlistType );
-}
-
-inline void ssp::Match::Deactivate()
-{ 
-	isActive = false;
+	currentState = state;
 }
 
 inline ssp::match::Result ssp::Match::GetStanding()
