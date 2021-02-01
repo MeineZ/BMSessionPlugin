@@ -33,6 +33,7 @@
 #define HOOK_COUNTDOWN_BEGINSTATE "Function GameEvent_TA.Countdown.BeginState"
 #define HOOK_PLAYER_SCORED "Function TAGame.GameEvent_Soccar_TA.EventPlayerScored"
 #define HOOK_ON_WINNER_SET "Function TAGame.GameEvent_Soccar_TA.EventMatchWinnerSet"
+#define HOOK_ON_MAIN_MENU "Function TAGame.GFxData_MainMenu_TA.MainMenuAdded"
 
 BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.11", 0 )
 
@@ -89,6 +90,7 @@ void ssp::SessionPlugin::onLoad()
 	gameWrapper->HookEventPost( HOOK_COUNTDOWN_BEGINSTATE, std::bind( &SessionPlugin::CountDown_BeginState, this, std::placeholders::_1 ) );
 	gameWrapper->HookEventPost( HOOK_PLAYER_SCORED, std::bind( &SessionPlugin::GameEvent_PlayerScored, this, std::placeholders::_1 ) );
 	gameWrapper->HookEventPost( HOOK_ON_WINNER_SET, std::bind( &SessionPlugin::GameEvent_MatchWinnerSet, this, std::placeholders::_1 ) );
+	gameWrapper->HookEventPost( HOOK_ON_MAIN_MENU, std::bind( &SessionPlugin::TAGame_MainMenuAdded, this, std::placeholders::_1 ) );
 
 	// Register to MMR notifier
 	mmrNotifierToken = gameWrapper->GetMMRWrapper().RegisterMMRNotifier( std::bind( &ssp::SessionPlugin::MMRWrapper_Notifier, this, std::placeholders::_1 ) );
@@ -110,10 +112,13 @@ void ssp::SessionPlugin::onUnload()
 	gameWrapper->UnhookEventPost( HOOK_COUNTDOWN_BEGINSTATE );
 	gameWrapper->UnhookEventPost( HOOK_PLAYER_SCORED );
 	gameWrapper->UnhookEventPost( HOOK_ON_WINNER_SET );
+
+	mmrNotifierToken.release();
 }
 
 void ssp::SessionPlugin::ResetStats()
 {
+	SSP_NO_PLUGIN_LOG( "RESETTING PLUGIN!" );
 	// Clear all session stats
 	stats.clear();
 
@@ -123,7 +128,7 @@ void ssp::SessionPlugin::ResetStats()
 
 void ssp::SessionPlugin::ResetColors()
 {
-	cvarManager->log( "RESETING COLORS!" );
+	SSP_NO_PLUGIN_LOG( "RESETING COLORS!" );
 	renderer.colorBackground->R = 0.f;
 	renderer.colorBackground->G = 0.f;
 	renderer.colorBackground->B = 0.f;
@@ -183,25 +188,44 @@ void ssp::SessionPlugin::WaitForAllPlayers_BeginState( std::string eventName )
 	if( currentStats == nullptr || currentMatch.GetMatchState() == ssp::match::State::IDLE )
 		return;
 
-	currentStats->Update( this, &currentMatch, true );
+	currentStats->Update( this, &currentMatch, true, false );
 }
 
 void ssp::SessionPlugin::CountDown_BeginState( std::string eventName )
 {
-	if( !CheckValidGame() )
-		return;
-
-	// First time here
-	if( currentMatch.GetMatchState() != ssp::match::State::ONGOING )
-	{
-		// Trigger match start
-		currentMatch.OnMatchStart(&*gameWrapper);
-	}
-
 	// Retrieve player ID if possible
 	if( currentPlayerID.GetUID() == ID_INVALID_VALUE )
 	{
 		currentPlayerID = gameWrapper->GetUniqueID();
+	}
+
+	if( !CheckValidGame() )
+	{
+		ssp::playlist::Stats *currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
+		if( currentStats != nullptr )
+		{
+			currentStats->Update( this, &currentMatch, true, false );
+		}
+		return;
+	}
+
+	// First time here
+	if( currentMatch.GetMatchState() != ssp::match::State::ONGOING )
+	{
+		ssp::playlist::Stats *currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
+
+		if( currentStats != nullptr )
+		{
+			currentStats->Update( this, &currentMatch, true, true );
+		}
+
+		// Trigger match start
+		currentMatch.OnMatchStart(&*gameWrapper);
+
+		currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
+
+		if( currentStats != nullptr )
+			currentStats->Update( this, &currentMatch, true, false );
 	}
 }
 
@@ -214,12 +238,25 @@ void ssp::SessionPlugin::GameEvent_PlayerScored( std::string eventName )
 }
 
 void ssp::SessionPlugin::GameEvent_MatchWinnerSet( std::string eventName )
-{ 
+{
 	currentMatch.OnMatchEnded( &*gameWrapper );
 }
 
+void ssp::SessionPlugin::TAGame_MainMenuAdded( std::string eventName )
+{
+	currentMatch.OnMatchEnded( &*gameWrapper );
+
+	if( currentMatch.GetMatchState() != ssp::match::State::IDLE )
+	{
+		ssp::playlist::Stats *currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
+
+		if( currentStats != nullptr )
+			currentStats->Update( this, &currentMatch, true, false );
+	}
+}
+
 void ssp::SessionPlugin::MMRWrapper_Notifier( UniqueIDWrapper uniqueID )
-{ 
+{
 	if( currentPlayerID.GetUID() == ID_INVALID_VALUE || uniqueID.GetUID() != currentPlayerID.GetUID() )
 		return;
 
@@ -228,7 +265,7 @@ void ssp::SessionPlugin::MMRWrapper_Notifier( UniqueIDWrapper uniqueID )
 	if( currentStats == nullptr )
 		return;
 
-	currentStats->Update( this, &currentMatch, false );
+	currentStats->Update( this, &currentMatch, true, false );
 }
 
 bool ssp::SessionPlugin::CheckValidGame()

@@ -219,7 +219,7 @@ void ssp::MMRSessionOutput::GameEventSoccar_EventMatchWinnerSet(std::string even
 			SSP_LOG("[EVENT MATCH WINNER SET FLAG] 4. " + std::to_string(id.GetUID()) + " , " + std::to_string(mmrPlayers[i].first.GetUID()) + " , " + std::to_string(mmrPlayers[i].second.current));
 			if (mmrPlayers[i].first.GetUID() == id.GetUID() && mmrPlayers[i].first.GetUID() != ID_INVALID_VALUE && (mmrPlayers[i].second.current == MMR_INVALID_VALUE || mmrPlayers[i].second.initial == mmrPlayers[i].second.current))
 			{
-				if (!mmrPlayers[i].second.RequestMmrUpdate(&*plugin->gameWrapper, id, currentPlaylist, false))
+				if (mmrPlayers[i].second.RequestMmrUpdate(&*plugin->gameWrapper, id, currentPlaylist, false) != ssp::mmr::RequestResult::SUCCESS)
 				{
 					foundAllMmr = false;
 				}
@@ -308,7 +308,7 @@ void ssp::MMRSessionOutput::WriteToFile(bool hardForce, bool forceIfNotAllCorrec
 	{
 		SSP_LOG("[WRITE TO FILE FLAG] 3. ");
 		// Stop executing this method if the mmr didn't update and we're not forced to write
-		if (!mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.RequestMmrUpdate(&*plugin->gameWrapper, currentPlayerId, currentPlaylist, true) && !hardForce )
+		if (mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.RequestMmrUpdate(&*plugin->gameWrapper, currentPlayerId, currentPlaylist, true) != ssp::mmr::RequestResult::SUCCESS && !hardForce )
 		{
 			SSP_LOG("[WRITE TO FILE FLAG] 4." + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.initial) + " == " + std::to_string(mmrPlayers[MMR_OUTPUT_CURRENT_PLAYER].second.current));
 			return;

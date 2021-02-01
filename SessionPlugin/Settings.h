@@ -10,7 +10,7 @@
 
 #ifndef SSP_DEBUG_LOG_ENABLED
 
-//#define SSP_DEBUG_LOG_ENABLED
+#define SSP_DEBUG_LOG_ENABLED
 
 #endif
 
@@ -19,10 +19,12 @@
 #ifdef SSP_DEBUG_LOG_ENABLED
 
 #define SSP_LOG(s) plugin->cvarManager->log(s)
+#define SSP_NO_PLUGIN_LOG(s) cvarManager->log(s)
 
 #else
 
 #define SSP_LOG(s)
+#define SSP_NO_PLUGIN_LOG(s)
 
 #endif
 

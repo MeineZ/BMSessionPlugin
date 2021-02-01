@@ -20,6 +20,17 @@ namespace ssp // SessionPlugin
 		enum class Type;
 	}
 
+	namespace mmr
+	{
+		enum class RequestResult 
+		{
+			SUCCESS = 0,
+			NOT_SYNCED = 1 << 0,
+			SAME_VALUE = 2 << 1,
+			INVALID_VALUE = 3 << 2
+		};
+	}
+
 	class MMR : public Loggable
 	{
 	public:
@@ -28,13 +39,13 @@ namespace ssp // SessionPlugin
 
 		float lastDiff;
 
-		float streakMmrGain;
+		float streakMmrStamp;
 
 		MMR( float initialMmr );
 
 		void Reset( float initialMmr = 0.0f);
 
-		bool RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, bool force = true);
+		ssp::mmr::RequestResult RequestMmrUpdate(GameWrapper * gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, bool force = true);
 
 		virtual void Log( CVarManagerWrapper *cvarManager );
 

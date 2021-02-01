@@ -97,3 +97,11 @@ void ssp::Match::SetCurrentGameGoals(GameWrapper * gameWrapper)
 		goals[0] = goals[1] = 0;
 	}
 }
+
+void ssp::Match::Log( CVarManagerWrapper *cvarManager )
+{ 
+	SSP_NO_PLUGIN_LOG("Match type: "+ std::to_string(static_cast<int>( type )));
+	SSP_NO_PLUGIN_LOG( "Current state: " + std::to_string( static_cast<int>( currentState ) ) );
+	SSP_NO_PLUGIN_LOG( "Goals: " + std::to_string( static_cast<int>( goals[0] ) ) + " - " + std::to_string( static_cast<int>( goals[1] ) ) );
+	SSP_NO_PLUGIN_LOG( "Current team: " + std::to_string( static_cast<int>( currentTeam ) ) );
+}

@@ -5,6 +5,7 @@
 #include <bakkesmod/wrappers/MMRWrapper.h>
 
 #include <Playlist.h>
+#include <Settings.h>
 
 ssp::MMR::MMR( float initialMmr ):
 	Loggable()
@@ -17,66 +18,69 @@ void ssp::MMR::Reset(float initialMmr )
 	initial = initialMmr;
 	current = initialMmr;
 	lastDiff = 0.0f;
-	streakMmrGain = 0.0f;
+	streakMmrStamp = initialMmr;
 }
 
-bool ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, bool force )
+ssp::mmr::RequestResult ssp::MMR::RequestMmrUpdate( GameWrapper *gameWrapper, UniqueIDWrapper &uniqueID, const ssp::playlist::Type matchType, bool force )
 {
-
 	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
 	if( force )
 	{
 		float mmr = mmrWrapper.GetPlayerMMR( uniqueID, static_cast<int>( matchType ) );
-		if( current == mmr || std::floor( mmr ) < 101.f )
-		{
-			return false;
-		}
+		if( current == mmr)
+			return ssp::mmr::RequestResult::SAME_VALUE;
+
+		if( std::floor( mmr ) >= 100.f && std::floor( mmr ) < 101.f )
+			return ssp::mmr::RequestResult::INVALID_VALUE;
 
 		lastDiff = mmr - current;
-		SetStreakMMRGain();
+		SetStreakMMRGain( );
 		current = mmr;
-		return true;
+		return ssp::mmr::RequestResult::SUCCESS;
 	}
 	else
 	{
 		if( mmrWrapper.IsSynced( uniqueID, static_cast<int>( matchType ) ) && !mmrWrapper.IsSyncing( uniqueID ) )
 		{
 			float mmr = mmrWrapper.GetPlayerMMR( uniqueID, static_cast<int>( matchType ) );
-			if( current == mmr || std::floor( mmr ) < 101.f )
-			{
-				return false;
-			}
+			if( current == mmr )
+				return ssp::mmr::RequestResult::SAME_VALUE;
+
+			if( std::floor( mmr ) >= 100.f && std::floor( mmr ) < 101.f )
+				return ssp::mmr::RequestResult::INVALID_VALUE;
 
 			lastDiff = mmr - current;
-			SetStreakMMRGain();
+			SetStreakMMRGain( );
 			current = mmr;
-			return true;
+			return ssp::mmr::RequestResult::SUCCESS;
 		}
 	}
-	return false;
+	return ssp::mmr::RequestResult::NOT_SYNCED;
 }
 
 void ssp::MMR::SetStreakMMRGain()
 {
-	if( streakMmrGain < 0.0f )
+	float streakDiff = current - streakMmrStamp;
+	if( streakDiff < 0.0f )
 	{
-		streakMmrGain = lastDiff < 0.0f
-			? ( streakMmrGain - lastDiff )
-			: lastDiff;
+		streakMmrStamp = lastDiff < 0.0f
+			? streakMmrStamp
+			: current;
 	}
-	else if( streakMmrGain > 0.0f )
+	else if( streakDiff > 0.0f )
 	{
-		streakMmrGain = lastDiff > 0.0f
-			? ( streakMmrGain + lastDiff )
-			: lastDiff;
+		streakMmrStamp = lastDiff > 0.0f
+			? streakMmrStamp
+			: current;
 	}
 	else
-		streakMmrGain = lastDiff;
+		streakMmrStamp = current;
 }
 
 void ssp::MMR::Log( CVarManagerWrapper *cvarManager )
 {
-	cvarManager->log( "Initial: " + std::to_string( initial) );
-	cvarManager->log( "Current: " + std::to_string( current ) );
-	cvarManager->log( "LastDiff: " + std::to_string( lastDiff ) );
+	SSP_NO_PLUGIN_LOG( "Initial: " + std::to_string( initial) );
+	SSP_NO_PLUGIN_LOG( "Current: " + std::to_string( current ) );
+	SSP_NO_PLUGIN_LOG( "LastDiff: " + std::to_string( lastDiff ) );
+	SSP_NO_PLUGIN_LOG( "Streak: " + std::to_string( current - streakMmrStamp ) );
 }

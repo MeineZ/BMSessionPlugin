@@ -26,7 +26,7 @@ namespace ssp // Session plugin
 			Stats( );
 			Stats( float initialMmr );
 
-			void Update( SessionPlugin * plugin, ssp::Match *currentMatch, bool force = false );
+			void Update( SessionPlugin * plugin, ssp::Match *currentMatch, bool forceMMR, bool forceResult );
 
 			// Sets data of the stats. Only use for testing purposes as this may not work as intended!
 			void SetTestData( );

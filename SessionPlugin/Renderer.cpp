@@ -99,9 +99,10 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 85 } );
 	stringStream.str( "" );
 	stringStream << ( streak > 0 ? "+" : "" ) << streak;
-	if( stats.mmr.streakMmrGain != 0.0f )
+	float streakDiff = stats.mmr.current - stats.mmr.streakMmrStamp;
+	if( stats.mmr.current - stats.mmr.streakMmrStamp != 0.0f )
 	{
-		stringStream << " (" << ( stats.mmr.streakMmrGain > 0 ? "+" : "" ) << stats.mmr.streakMmrGain << ")";
+		stringStream << " (" << ( streakDiff > 0 ? "+" : "" ) << streakDiff << ")";
 	}
 	canvas->DrawString( stringStream.str() );
 }

@@ -52,6 +52,7 @@ namespace ssp // SessionPlugin
 		void CountDown_BeginState( std::string eventName );
 		void GameEvent_PlayerScored( std::string eventName );
 		void GameEvent_MatchWinnerSet( std::string eventName );
+		void TAGame_MainMenuAdded( std::string eventName );
 		void MMRWrapper_Notifier( UniqueIDWrapper uniqueID );
 
 		// Helpers

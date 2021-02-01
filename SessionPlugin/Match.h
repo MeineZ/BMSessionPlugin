@@ -28,7 +28,7 @@ namespace ssp // SessionPlugin
 		};
 	}
 
-	class Match
+	class Match : public Loggable
 	{
 	private:
 		ssp::playlist::Type type; // The match type
@@ -55,6 +55,8 @@ namespace ssp // SessionPlugin
 
 		// Receive and set the current match score
 		void SetCurrentGameGoals( GameWrapper *gameWrapper );
+
+		virtual void Log( CVarManagerWrapper *cvarManager );
 
 		// Returns the current standing based on the currently known score.
 		inline match::Result GetStanding();

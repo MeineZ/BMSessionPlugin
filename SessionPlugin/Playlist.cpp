@@ -14,18 +14,18 @@ namespace ssp // SessionPlugin
 			switch( type )
 			{
 				case int( Type::PLAYLIST_DUEL ) : return Type::PLAYLIST_DUEL;
-					case int( Type::PLAYLIST_DOUBLES ) : return Type::PLAYLIST_DOUBLES;
-						case int( Type::PLAYLIST_STANDARD ) : return Type::PLAYLIST_STANDARD;
-							case int( Type::PLAYLIST_CHAOS ) : return Type::PLAYLIST_CHAOS;
-								case int( Type::PLAYLIST_RANKEDDUEL ) : return Type::PLAYLIST_RANKEDDUEL;
-									case int( Type::PLAYLIST_RANKEDDOUBLES ) : return Type::PLAYLIST_RANKEDDOUBLES;
-										case int( Type::PLAYLIST_RANKEDSOLOSTANDARD ) : return Type::PLAYLIST_RANKEDSOLOSTANDARD;
-											case int( Type::PLAYLIST_RANKEDSTANDARD ) : return Type::PLAYLIST_RANKEDSTANDARD;
-												case int( Type::PLAYLIST_RANKEDHOOPS ) : return Type::PLAYLIST_RANKEDHOOPS;
-													case int( Type::PLAYLIST_RANKEDRUMBLE ) : return Type::PLAYLIST_RANKEDRUMBLE;
-														case int( Type::PLAYLIST_RANKEDDROPSHOT ) : return Type::PLAYLIST_RANKEDDROPSHOT;
-															case int( Type::PLAYLIST_RANKEDSNOWDAY ) : return Type::PLAYLIST_RANKEDSNOWDAY;
-															default:											return Type::PLAYLIST_UNKNOWN;
+				case int( Type::PLAYLIST_DOUBLES ) : return Type::PLAYLIST_DOUBLES;
+				case int( Type::PLAYLIST_STANDARD ) : return Type::PLAYLIST_STANDARD;
+				case int( Type::PLAYLIST_CHAOS ) : return Type::PLAYLIST_CHAOS;
+				case int( Type::PLAYLIST_RANKEDDUEL ) : return Type::PLAYLIST_RANKEDDUEL;
+				case int( Type::PLAYLIST_RANKEDDOUBLES ) : return Type::PLAYLIST_RANKEDDOUBLES;
+				case int( Type::PLAYLIST_RANKEDSOLOSTANDARD ) : return Type::PLAYLIST_RANKEDSOLOSTANDARD;
+				case int( Type::PLAYLIST_RANKEDSTANDARD ) : return Type::PLAYLIST_RANKEDSTANDARD;
+				case int( Type::PLAYLIST_RANKEDHOOPS ) : return Type::PLAYLIST_RANKEDHOOPS;
+				case int( Type::PLAYLIST_RANKEDRUMBLE ) : return Type::PLAYLIST_RANKEDRUMBLE;
+				case int( Type::PLAYLIST_RANKEDDROPSHOT ) : return Type::PLAYLIST_RANKEDDROPSHOT;
+				case int( Type::PLAYLIST_RANKEDSNOWDAY ) : return Type::PLAYLIST_RANKEDSNOWDAY;
+				default: return Type::PLAYLIST_UNKNOWN;
 			}
 		}
 
@@ -87,10 +87,10 @@ namespace ssp // SessionPlugin
 			mmr = ssp::MMR( 1743.00f );
 			mmr.current = 1772.43f;
 			mmr.lastDiff = 9.64f;
-			mmr.streakMmrGain = 28.92f;
+			mmr.streakMmrStamp = 1743.51f;
 		}
 
-		void ssp::playlist::Stats::Update( ssp::SessionPlugin *plugin, ssp::Match *currentMatch, bool force )
+		void ssp::playlist::Stats::Update( ssp::SessionPlugin *plugin, ssp::Match *currentMatch, bool forceMMR, bool forceResult )
 		{
 			if( plugin == nullptr || currentMatch == nullptr )
 				return;
@@ -98,14 +98,14 @@ namespace ssp // SessionPlugin
 			if( !ssp::playlist::IsKnown( currentMatch->GetMatchType() ) )
 				return;
 
-			if( mmr.RequestMmrUpdate( &*plugin->gameWrapper, plugin->GetUniqueID(), currentMatch->GetMatchType(), force ) )
+			if( mmr.RequestMmrUpdate( &*plugin->gameWrapper, plugin->GetUniqueID(), currentMatch->GetMatchType(), forceMMR ) == ssp::mmr::RequestResult::SUCCESS )
 			{
 				UpdateWinLossStreak( plugin, currentMatch, true );
 				currentMatch->Reset();
 			}
-			else if( force )
+			else if( forceResult )
 			{
-				UpdateWinLossStreak(plugin, currentMatch, false);
+				UpdateWinLossStreak( plugin, currentMatch, false );
 				currentMatch->Reset();
 			}
 		}
@@ -151,9 +151,9 @@ namespace ssp // SessionPlugin
 		void Stats::Log( CVarManagerWrapper *cvarManager )
 		{
 			mmr.Log( cvarManager );
-			cvarManager->log( "Wins: " + std::to_string( wins ) );
-			cvarManager->log( "Losses: " + std::to_string( losses ) );
-			cvarManager->log( "Streak: " + std::to_string( streak ) );
+			SSP_NO_PLUGIN_LOG( "Wins: " + std::to_string( wins ) );
+			SSP_NO_PLUGIN_LOG( "Losses: " + std::to_string( losses ) );
+			SSP_NO_PLUGIN_LOG( "Streak: " + std::to_string( streak ) );
 		}
 	}
 }
