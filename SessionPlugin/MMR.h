@@ -26,8 +26,8 @@ namespace ssp // SessionPlugin
 		{
 			SUCCESS = 0,
 			NOT_SYNCED = 1 << 0,
-			SAME_VALUE = 2 << 1,
-			INVALID_VALUE = 3 << 2
+			SAME_VALUE = 1 << 1,
+			INVALID_VALUE = 1 << 2
 		};
 	}
 

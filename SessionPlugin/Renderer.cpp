@@ -10,6 +10,7 @@
 ssp::Renderer::Renderer() :
 	posX(std::make_shared<int>(420)),
 	posY(std::make_shared<int>(0)),
+	scale(std::make_shared<float>(1.0f)),
 	colorBackground( std::make_shared<LinearColor>( LinearColor() ) ),
 	colorTitle( std::make_shared<LinearColor>( LinearColor() ) ),
 	colorLabel( std::make_shared<LinearColor>( LinearColor() ) ),
@@ -29,74 +30,73 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	// DRAW BOX
 	canvas->SetColor( *colorBackground );
 	canvas->SetPosition( position );
-	canvas->FillBox( GetStatsDisplaySize( type ) );
-
+	canvas->FillBox(GetStatsDisplaySize(type));
 
 	// DRAW CURRENT PLAYLIST
 	canvas->SetColor( *colorTitle );
-	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 5 } );
+	canvas->SetPosition( Vector2{ position.X + 10, position.Y + (int)(5.0f * *scale) } );
 
 	stringStream << ssp::playlist::GetName( type ) << " (";
 	stats.mmr.SetCurrentSStream( stringStream );
 	stringStream << ")";
-	canvas->DrawString( stringStream.str() );
+	canvas->DrawString(stringStream.str(), *scale, *scale );
 
 
 	// DRAW MMR
 	canvas->SetColor( *colorLabel );
-	canvas->SetPosition( Vector2{ position.X + 47, position.Y + 21 } );
-	canvas->DrawString( "MMR:" );
+	canvas->SetPosition( Vector2{ position.X + (int)(47.0f * *scale), position.Y + (int)(21.0f * *scale) } );
+	canvas->DrawString( "MMR:", *scale, *scale);
 
 	float mmrGain = stats.mmr.GetDiff();
 	SetColorByValue( canvas, mmrGain );
-	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 21 } );
+	canvas->SetPosition( Vector2{ position.X + (int)(88.0f * *scale), position.Y + (int)(21.0f * *scale) } );
 
 	stringStream.str( "" );
 	stats.mmr.SetDiffSStream( stringStream );
-	canvas->DrawString( stringStream.str() );
+	canvas->DrawString( stringStream.str(), *scale, *scale);
 
 	// DRAW LAST GAME MMR GAIN
 	canvas->SetColor( *colorLabel );
-	canvas->SetPosition( Vector2{ position.X + 10, position.Y + 37 } );
-	canvas->DrawString( "Last game:" );
+	canvas->SetPosition(Vector2{ position.X + (int)(10.0f * *scale), position.Y + (int)(37.0f * *scale) } );
+	canvas->DrawString( "Last game:", *scale, *scale);
 
 	float lastGameGain = stats.mmr.lastDiff;
 	SetColorByValue( canvas, lastGameGain );
-	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 37 } );
+	canvas->SetPosition( Vector2{ position.X + (int)(88.0f * *scale), position.Y + (int)(37.0f * *scale) } );
 
 	stringStream.str( "" );
 	stats.mmr.SetLastGameSStream( stringStream );
-	canvas->DrawString( stringStream.str() );
+	canvas->DrawString( stringStream.str(), *scale, *scale);
 
 
 	// DRAW WINS
 	canvas->SetColor( *colorLabel );
-	canvas->SetPosition( Vector2{ position.X + 46, position.Y + 53 } );
-	canvas->DrawString( "Wins:" );
+	canvas->SetPosition( Vector2{ position.X + (int)(46.0f * *scale), position.Y + (int)(53.0f * *scale) } );
+	canvas->DrawString( "Wins:", *scale, *scale);
 
 	canvas->SetColor( *colorPositive );
-	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 53 } );
-	canvas->DrawString( std::to_string( stats.wins ) );
+	canvas->SetPosition( Vector2{ position.X + (int)(88.0f * *scale), position.Y + (int)(53.0f * *scale) } );
+	canvas->DrawString( std::to_string( stats.wins ), *scale, *scale);
 
 
 	// DRAW LOSSES
 	canvas->SetColor( *colorLabel );
-	canvas->SetPosition( Vector2{ position.X + 33, position.Y + 69 } );
-	canvas->DrawString( "Losses:" );
+	canvas->SetPosition( Vector2{ position.X + (int)(33.0f * *scale), position.Y + (int)(69.0f * *scale) } );
+	canvas->DrawString( "Losses:", *scale, *scale);
 
 	canvas->SetColor( *colorNegative );
-	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 69 } );
-	canvas->DrawString( std::to_string( stats.losses ) );
+	canvas->SetPosition( Vector2{ position.X + (int)(88.0f * *scale), position.Y + (int)(69.0f * *scale) } );
+	canvas->DrawString( std::to_string( stats.losses ), *scale, *scale);
 
 
 	// DRAW STREAK
 	canvas->SetColor( *colorLabel );
-	canvas->SetPosition( Vector2{ position.X + 34, position.Y + 85 } );
-	canvas->DrawString( "Streak:" );
+	canvas->SetPosition( Vector2{ position.X + (int)(34.0f * *scale), position.Y + (int)(85.0f * *scale) });
+	canvas->DrawString( "Streak:", *scale, *scale);
 
 	int streak = stats.streak;
 	SetColorByValue(canvas, static_cast<float>(streak));
-	canvas->SetPosition( Vector2{ position.X + 88, position.Y + 85 } );
+	canvas->SetPosition( Vector2{ position.X + (int)(88.0f * *scale), position.Y + (int)(85.0f * *scale) } );
 	stringStream.str( "" );
 	stringStream << ( streak > 0 ? "+" : "" ) << streak;
 	float streakDiff = stats.mmr.current - stats.mmr.streakMmrStamp;
@@ -104,18 +104,18 @@ void ssp::Renderer::RenderStats( CanvasWrapper *canvas, ssp::playlist::Stats &st
 	{
 		stringStream << " (" << ( streakDiff > 0 ? "+" : "" ) << streakDiff << ")";
 	}
-	canvas->DrawString( stringStream.str() );
+	canvas->DrawString( stringStream.str(), *scale, *scale);
 }
 
 Vector2 ssp::Renderer::GetStatsDisplaySize( ssp::playlist::Type type )
 {
 	switch( type )
 	{
-		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL: return Vector2{ 175, 104 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES: return Vector2{ 200, 104 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD: return Vector2{ 240, 104 };
-		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD: return Vector2{ 210, 104 };
-		default: return Vector2{ 220, 104 };
+		case ssp::playlist::Type::PLAYLIST_RANKEDDUEL: return Vector2{ (int)(175.0f * *scale), (int)(104.0f * *scale) };
+		case ssp::playlist::Type::PLAYLIST_RANKEDDOUBLES: return Vector2{ (int)(200.0f * *scale), (int)(104.0f * *scale) };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSOLOSTANDARD: return Vector2{ (int)(240.0f * *scale), (int)(104.0f * *scale) };
+		case ssp::playlist::Type::PLAYLIST_RANKEDSTANDARD: return Vector2{ (int)(210.0f * *scale), (int)(104.0f * *scale) };
+		default: return Vector2{ (int)(220.0f * *scale), (int)(104.0f * *scale) };
 	}
 }
 

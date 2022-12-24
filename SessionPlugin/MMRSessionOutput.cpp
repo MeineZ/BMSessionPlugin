@@ -63,7 +63,7 @@ void ssp::MMRSessionOutput::Initialize(SessionPlugin* newPlugin)
 	SSP_LOG("[INITIALIZE FLAG] 2.");
 
 	// Create folder if it doesn't exist yet
-	CreateDirectory( ( plugin->gameWrapper->GetDataFolder() / MMR_OUTPUT_FILE_FOLDER ).string().c_str(), NULL );
+	//CreateDirectory( ( plugin->gameWrapper->GetDataFolder() / MMR_OUTPUT_FILE_FOLDER ).string().c_str(), NULL );
 }
 
 void ssp::MMRSessionOutput::Reset()

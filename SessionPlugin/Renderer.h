@@ -18,6 +18,7 @@ namespace ssp
 	public:
 		std::shared_ptr<int> posX;
 		std::shared_ptr<int> posY;
+		std::shared_ptr<float> scale;
 
 		std::shared_ptr<LinearColor> colorBackground; // The color used for the background
 		std::shared_ptr<LinearColor> colorTitle; // The color used for title texts

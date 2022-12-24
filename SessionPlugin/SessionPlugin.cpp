@@ -18,6 +18,8 @@
 #define CVAR_NAME_SHOULD_LOG "cl_session_plugin_should_log"
 #define CVAR_NAME_DISPLAY_X "cl_session_plugin_display_x"
 #define CVAR_NAME_DISPLAY_Y "cl_session_plugin_display_y"
+#define CVAR_NAME_DISPLAY_SCALE "cl_session_plugin_display_scale"
+#define CVAR_NAME_DISPLAY_SCALE_RESET "cl_session_plugin_display_scale_reset"
 #define CVAR_NAME_DISPLAY_TEST "cl_session_plugin_display_test"
 #define CVAR_NAME_COLOR_BACKGROUND "cl_session_plugin_background_color"
 #define CVAR_NAME_COLOR_TITLE "cl_session_plugin_title_color"
@@ -35,7 +37,7 @@
 #define HOOK_ON_WINNER_SET "Function TAGame.GameEvent_Soccar_TA.EventMatchWinnerSet"
 #define HOOK_ON_MAIN_MENU "Function TAGame.GFxData_MainMenu_TA.MainMenuAdded"
 
-BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.11", 0 )
+BAKKESMOD_PLUGIN( ssp::SessionPlugin, "Session plugin (shows session stats)", "1.12", 0 )
 
 ssp::SessionPlugin::SessionPlugin():
 	mmrSessionOutput(),
@@ -63,6 +65,7 @@ void ssp::SessionPlugin::onLoad()
 	// Renderer CVar initialization
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_X, "420", "X position of the display", false, true, 0, true, 3840, true ).bindTo( renderer.posX );
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_Y, "0", "Y position of the display", false, true, 0, true, 2160, true ).bindTo( renderer.posY );
+	cvarManager->registerCvar(CVAR_NAME_DISPLAY_SCALE, "1", "Scale of the display", false, true, 0.5f, true, 5.0f, true).bindTo(renderer.scale);
 
 	// Manage configurable colors
 	cvarManager->registerCvar( CVAR_NAME_DISPLAY_TEST, "0", "Show test stats", false, false, 0, false, 1, true ).bindTo( displayStatsTest );
@@ -73,10 +76,14 @@ void ssp::SessionPlugin::onLoad()
 	cvarManager->registerCvar( CVAR_NAME_COLOR_NEGATIVE, "(232, 95, 95, 127)", "Negative color", false, false, 0, false, 255, true ).bindTo( renderer.colorNegative );
 
 	// MMR ourputter CVar initialization
-	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( mmrSessionOutput.cvarMMROutputter );
-	cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR_OPPONENT, "0", "Wheter the MMR gain of all other game members should be included in the output", false, true, 0, true, 1, true ).bindTo( mmrSessionOutput.outputOtherGain );
+	//cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR, "0", "Whether the MMR should be saved in a csv file", false, true, 0, true, 1, true ).bindTo( mmrSessionOutput.cvarMMROutputter );
+	//cvarManager->registerCvar( CVAR_NAME_OUTPUT_MMR_OPPONENT, "0", "Wheter the MMR gain of all other game members should be included in the output", false, true, 0, true, 1, true ).bindTo( mmrSessionOutput.outputOtherGain );
 
 	// CVar Hooks
+	cvarManager->registerNotifier(CVAR_NAME_DISPLAY_SCALE_RESET, [this](std::vector<std::string> params) {
+		ResetRendererScale();
+	}, "Reset scale to 1.0", PERMISSION_ALL);
+
 	cvarManager->registerNotifier( CVAR_NAME_RESET, [this] ( std::vector<std::string> params ) {
 		ResetStats();
 	}, "Start a fresh stats session", PERMISSION_ALL );
@@ -99,7 +106,7 @@ void ssp::SessionPlugin::onLoad()
 	gameWrapper->RegisterDrawable( std::bind( &SessionPlugin::Render, this, std::placeholders::_1 ) );
 
 	// Set default properties
-	mmrSessionOutput.Initialize( this );
+	//mmrSessionOutput.Initialize( this );
 }
 
 void ssp::SessionPlugin::onUnload()
@@ -114,6 +121,13 @@ void ssp::SessionPlugin::onUnload()
 	gameWrapper->UnhookEventPost( HOOK_ON_WINNER_SET );
 
 	mmrNotifierToken.release();
+}
+
+void ssp::SessionPlugin::ResetRendererScale()
+{
+	SSP_NO_PLUGIN_LOG("RESETTING DISPLAY SCALE!");
+	*renderer.scale = 1.0f;
+	cvarManager->getCvar(CVAR_NAME_DISPLAY_SCALE).setValue(*(renderer.scale));
 }
 
 void ssp::SessionPlugin::ResetStats()
@@ -201,11 +215,17 @@ void ssp::SessionPlugin::CountDown_BeginState( std::string eventName )
 
 	if( !CheckValidGame() )
 	{
+		SSP_NO_PLUGIN_LOG( "[NOVALIDGAME FLAG]" );
 		ssp::playlist::Stats *currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
 		if( currentStats != nullptr )
 		{
+			currentMatch.Log( &*cvarManager );
+			currentStats->Log( &*cvarManager );
 			currentStats->Update( this, &currentMatch, true, false );
+			currentMatch.Log( &*cvarManager );
+			currentStats->Log( &*cvarManager );
 		}
+		SSP_NO_PLUGIN_LOG( "[NOVALIDGAME FLAG_END]" );
 		return;
 	}
 
@@ -239,20 +259,32 @@ void ssp::SessionPlugin::GameEvent_PlayerScored( std::string eventName )
 
 void ssp::SessionPlugin::GameEvent_MatchWinnerSet( std::string eventName )
 {
+	SSP_NO_PLUGIN_LOG( "[MATCHWINNERSET FLAG]" );
+	currentMatch.Log( &*cvarManager );
 	currentMatch.OnMatchEnded( &*gameWrapper );
+	currentMatch.Log( &*cvarManager );
+	SSP_NO_PLUGIN_LOG( "[MATCHWINNERSET FLAG_END]" );
 }
 
 void ssp::SessionPlugin::TAGame_MainMenuAdded( std::string eventName )
 {
+	SSP_NO_PLUGIN_LOG("[MAIN MENU ADDED FLAG]");
 	currentMatch.OnMatchEnded( &*gameWrapper );
+	currentMatch.Log( &*cvarManager );
 
 	if( currentMatch.GetMatchState() != ssp::match::State::IDLE )
 	{
 		ssp::playlist::Stats *currentStats = GetPlaylistStats( currentMatch.GetMatchType() );
 
 		if( currentStats != nullptr )
+		{
+			currentStats->Log( &*cvarManager );
 			currentStats->Update( this, &currentMatch, true, false );
+			currentStats->Log( &*cvarManager );
+		}
 	}
+	currentMatch.Log( &*cvarManager );
+	SSP_NO_PLUGIN_LOG( "[MAIN MENU ADDED FLAG_END]" );
 }
 
 void ssp::SessionPlugin::MMRWrapper_Notifier( UniqueIDWrapper uniqueID )

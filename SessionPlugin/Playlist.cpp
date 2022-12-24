@@ -92,13 +92,21 @@ namespace ssp // SessionPlugin
 
 		void ssp::playlist::Stats::Update( ssp::SessionPlugin *plugin, ssp::Match *currentMatch, bool forceMMR, bool forceResult )
 		{
+			SSP_LOG( "[STATS UPDATE FLAG]" );
 			if( plugin == nullptr || currentMatch == nullptr )
 				return;
 
+			SSP_LOG( "Known? : " + std::to_string(!ssp::playlist::IsKnown( currentMatch->GetMatchType() )) );
+			currentMatch->Log(&*plugin ->cvarManager);
 			if( !ssp::playlist::IsKnown( currentMatch->GetMatchType() ) )
-				return;
+				return; 
 
-			if( mmr.RequestMmrUpdate( &*plugin->gameWrapper, plugin->GetUniqueID(), currentMatch->GetMatchType(), forceMMR ) == ssp::mmr::RequestResult::SUCCESS )
+			Log( &*plugin->cvarManager );
+
+			ssp::mmr::RequestResult requestResult = mmr.RequestMmrUpdate( &*plugin->gameWrapper, plugin->GetUniqueID(), currentMatch->GetMatchType(), forceMMR );
+			SSP_LOG( "requestResult? : " + std::to_string( (int)requestResult ) + " -- " + std::to_string( forceMMR ) + " -- "+ std::to_string( plugin->GetUniqueID().GetUID() ) );
+
+			if( requestResult == ssp::mmr::RequestResult::SUCCESS )
 			{
 				UpdateWinLossStreak( plugin, currentMatch, true );
 				currentMatch->Reset();
@@ -108,6 +116,10 @@ namespace ssp // SessionPlugin
 				UpdateWinLossStreak( plugin, currentMatch, false );
 				currentMatch->Reset();
 			}
+			currentMatch->Log( &*plugin->cvarManager );
+			Log( &*plugin->cvarManager );
+
+			SSP_LOG( "[STATS UPDATE FLAG_END]" );
 		}
 
 		void ssp::playlist::Stats::UpdateWinLossStreak( SessionPlugin *plugin, ssp::Match *currentMatch, bool byMMR )

@@ -1,5 +1,7 @@
 Session Stats plugin
 9|This plugin will count wins/losses/mmr change
+9|NOTE: Be aware that leaving a match before it officially ended (leave directly after forfeit, ragequite, etc.) will result in inaccurate stats.
+9|           Use the Reset Stats button at the bottom to refresh your current session.
 1|Display stats on screen (appears after the start of your first match)|cl_session_plugin_display
 10|cl_session_plugin_display
 1|Show stats during matches|cl_session_plugin_display_in_matches
@@ -9,6 +11,10 @@ Session Stats plugin
 10|cl_session_plugin_display
 5|X|cl_session_plugin_display_x|0|3840
 5|Y|cl_session_plugin_display_y|0|2160
+9|Stats display scale 
+4|Scale|cl_session_plugin_display_scale|0.5|5.0
+7|
+0|Reset|cl_session_plugin_display_scale_reset
 11|
 8|
 9|Stats display colors
@@ -19,14 +25,5 @@ Session Stats plugin
 13|Positive color|cl_session_plugin_positive_color
 13|Negative color|cl_session_plugin_negative_color
 0|Reset colors|cl_session_plugin_reset_colors
-8|
-9|MMR Outputter
-9|Checking this checkbox will output your mmr per playlist to <BakkesModFolder>/data/SessionPlugin
-9|Note that this just adds your MMR data to the file, so playing on multiple accounts saves all data to the same file.
-9|For this to work properly, make sure that the mmr is shown in you scoreboard at ALL times! You can enable these settings in: 
-1|Output MMR to csv file|cl_session_plugin_output_mmr
-10|cl_session_plugin_output_mmr
-1|Include all game members MMR gain (WARNING: this may not always do it's job; e.g. when you leave a match early) |cl_session_plugin_output_mmr_include_other
-11|
 8|
 0|Reset stats|cl_session_plugin_reset

@@ -10,7 +10,7 @@
 
 #ifndef SSP_DEBUG_LOG_ENABLED
 
-#define SSP_DEBUG_LOG_ENABLED
+//#define SSP_DEBUG_LOG_ENABLED
 
 #endif
 

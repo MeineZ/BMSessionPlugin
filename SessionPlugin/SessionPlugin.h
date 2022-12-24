@@ -38,6 +38,7 @@ namespace ssp // SessionPlugin
 		virtual void onUnload();
 
 		// Reset functions
+		void ResetRendererScale();
 		void ResetStats();
 		void ResetColors();
 
